@@ -12,35 +12,28 @@ const LinearSearch = () => {
   const [foundIndex, setFoundIndex] = useState(-1);
   const [isAnimating, setIsAnimating] = useState(false);
   const [message, setMessage] = useState("");
-  const [speed] = useState(1);
+  const [speed, setSpeed] = useState(1);
   const animationRef = useRef(null);
   const formRef = useRef(null);
   const elementRefs = useRef([]);
 
-  // Clean up animation on unmount
   useEffect(() => {
     return () => {
-      if (animationRef.current) {
-        clearTimeout(animationRef.current);
-      }
+      clearTimeout(animationRef.current);
     };
   }, []);
 
   const handleReset = () => {
+    clearTimeout(animationRef.current);
     setArray([]);
     setCurrentIndex(-1);
     setFoundIndex(-1);
     setMessage("");
     setIsAnimating(false);
-    if (animationRef.current) {
-      clearTimeout(animationRef.current);
-      animationRef.current = null;
-    }
     setArrayElements("");
     setTarget("");
-    if (formRef.current) {
-      formRef.current.reset();
-    }
+    if (formRef.current) formRef.current.reset();
+
     // Reset GSAP animations
     elementRefs.current.forEach((ref) => {
       gsap.to(ref, {
@@ -79,79 +72,73 @@ const LinearSearch = () => {
 
     setArray(elements);
     setIsAnimating(true);
+    setCurrentIndex(-1);
+    setFoundIndex(-1);
+    setMessage("");
+
+    // start animation
     animateLinearSearch(elements, targetValue);
   };
 
   const animateLinearSearch = (arr, targetValue) => {
     let index = 0;
+    const delay = 1500 / speed;
 
     const step = () => {
-      if (index < arr.length) {
-        setCurrentIndex(index);
-
-        // GSAP animation for current element
-        gsap.to(elementRefs.current[index], {
-          backgroundColor: "#EAB308",
-          borderColor: "#A16207",
-          duration: 0.3,
-          onComplete: () => {
-            if (arr[index] === targetValue) {
-              finishSearch(index, targetValue);
-            } else if (index === arr.length - 1) {
-              finishSearch(-1, targetValue);
-            } else {
-              // Reset previous element's style
-              gsap.to(elementRefs.current[index], {
-                backgroundColor: "#E5E7EB",
-                borderColor: "#D1D5DB",
-                duration: 0.3,
-              });
-              index++;
-              animationRef.current = setTimeout(step, 1000 / speed);
-            }
-          },
-        });
+      if (index >= arr.length) {
+        setMessage(`Element ${targetValue} not found in the array.`);
+        setIsAnimating(false);
+        return;
       }
+
+      setCurrentIndex(index);
+
+      // highlight current
+      elementRefs.current.forEach((ref, idx) => {
+        if (!ref) return;
+        if (idx === index) {
+          gsap.to(ref, { backgroundColor: "#EAB308", borderColor: "#A16207", duration: 0.3 });
+        } else if (idx < index) {
+          // checked elements
+          gsap.to(ref, { backgroundColor: "#93C5FD", borderColor: "#3B82F6", duration: 0.3 });
+        } else {
+          gsap.to(ref, { backgroundColor: "#E5E7EB", borderColor: "#D1D5DB", duration: 0.3 });
+        }
+      });
+
+      animationRef.current = setTimeout(() => {
+        if (arr[index] === targetValue) {
+          setFoundIndex(index);
+          setMessage(`Element ${targetValue} found at index ${index}!`);
+          setIsAnimating(false);
+          gsap.to(elementRefs.current[index], { backgroundColor: "#22C55E", borderColor: "#15803D", duration: 0.3 });
+        } else {
+          index++;
+          step();
+        }
+      }, delay);
     };
 
     step();
   };
 
-  const finishSearch = (foundIdx, targetValue) => {
-    setIsAnimating(false);
-
-    if (foundIdx !== -1) {
-      setFoundIndex(foundIdx);
-      setMessage(`Element ${targetValue} found at index ${foundIdx}!`);
-      gsap.to(elementRefs.current[foundIdx], {
-        backgroundColor: "#22C55E",
-        borderColor: "#15803D",
-        duration: 0.3,
-      });
-    } else {
-      setMessage(`Element ${targetValue} not found in the array.`);
-    }
-  };
+  const increaseSpeed = () => setSpeed((prev) => Math.min(prev + 0.5, 5));
+  const decreaseSpeed = () => setSpeed((prev) => Math.max(prev - 0.5, 0.5));
 
   return (
-    <main className="container mx-auto px-6 pb-4">
+    <main className="container mx-auto">
       <p className="text-lg text-center text-gray-600 dark:text-gray-400 mb-8">
-        Visualize how Linear Search works by sequentially checking each element
-        in an array.
+        Visualize how Linear Search works by sequentially checking each element in an array.
       </p>
 
-      {/* Input Form */}
       <form
         ref={formRef}
         onSubmit={handleGo}
-        className="max-w-4xl mx-auto bg-white dark:bg-neutral-950 p-6 rounded-xl mb-8 border border-gray-200 dark:border-gray-700"
+        className="max-w-4xl mx-auto bg-white dark:bg-neutral-950 p-6 rounded-xl border border-gray-200 dark:border-gray-700 mb-8"
       >
         <div className="mb-4">
-          <label
-            className="block text-gray-700 dark:text-gray-300 mb-2"
-            htmlFor="arrayElements"
-          >
-            Array Elements
+          <label className="block text-gray-700 dark:text-gray-300 mb-2" htmlFor="arrayElements">
+            Array Elements (comma-separated)
           </label>
           <div className="flex gap-2">
             <input
@@ -159,52 +146,67 @@ const LinearSearch = () => {
               id="arrayElements"
               value={arrayElements}
               onChange={(e) => setArrayElements(e.target.value)}
-              className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-400 transition duration-300"
+              className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:border-[#a435f0] focus:outline-none focus:ring-2 focus:ring-[#a435f0]/30 dark:focus:ring-[#a435f0]/30 transition duration-300"
               placeholder="eg. 3, 1, 4, 1, 5"
               disabled={isAnimating}
             />
             <button
               type="button"
               onClick={generateRandomArray}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 transition duration-300"
+              className="px-4 py-2 font-bold bg-[#a435f0] text-white rounded-lg hover:bg-[#8f2cd6] transition-all duration-200"
               disabled={isAnimating}
             >
               Random
             </button>
           </div>
         </div>
+
         <div className="mb-4">
-  <label
-    className="block text-gray-700 dark:text-gray-300 mb-2"
-    htmlFor="target"
-  >
-    Target Element
-  </label>
+          <label className="block text-gray-700 dark:text-gray-300 mb-2" htmlFor="target">
+            Target Element
+          </label>
 
-  <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-    <input
-      type="number"
-      id="target"
-      value={target}
-      onChange={(e) => setTarget(e.target.value)}
-      className="w-full sm:max-w-xs p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-400 transition duration-300"
-      placeholder="eg. 4"
-      disabled={isAnimating}
-    />
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+            <input
+              type="number"
+              id="target"
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+              className="w-full sm:max-w-xs p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:border-[#a435f0] focus:outline-none focus:ring-2 focus:ring-[#a435f0]/30 dark:focus:ring-[#a435f0]/30 transition duration-300"
+              placeholder="eg. 4"
+              disabled={isAnimating}
+            />
 
-    <div className="flex gap-2 w-full">
-      <GoButton
-        onClick={handleGo}
-        isAnimating={isAnimating}
-        disabled={isAnimating}
-      />
-      <ResetButton onReset={handleReset} isAnimating={isAnimating} />
-    </div>
-  </div>
-</div>
+            <div className="flex gap-2 w-full">
+              <GoButton onClick={handleGo} isAnimating={isAnimating} disabled={isAnimating} />
+              <ResetButton onReset={handleReset} isAnimating={isAnimating} />
+            </div>
+          </div>
+        </div>
+
+        {isAnimating && (
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              onClick={decreaseSpeed}
+              className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors"
+              disabled={speed <= 0.5}
+            >
+              -
+            </button>
+            <span className="text-gray-700 dark:text-gray-300">Speed: {speed}x</span>
+            <button
+              type="button"
+              onClick={increaseSpeed}
+              className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors"
+              disabled={speed >= 5}
+            >
+              +
+            </button>
+          </div>
+        )}
       </form>
 
-      {/* Output Screen */}
       {message && (
         <div
           className={`max-w-3xl mx-auto mb-8 p-4 rounded-lg ${
@@ -217,34 +219,31 @@ const LinearSearch = () => {
         </div>
       )}
 
-      {/* Visualization */}
       {array.length > 0 && (
         <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            Array Visualization
-          </h2>
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6 text-center">Array Visualization</h2>
           <div className="flex flex-wrap gap-4 justify-center">
             {array.map((element, index) => (
-              <div
-                key={index}
-                ref={(el) => (elementRefs.current[index] = el)}
-                className={`relative w-20 h-20 flex flex-col items-center justify-center rounded-lg border-2 transition-all duration-300 ${
-                  currentIndex === index && foundIndex === -1
-                    ? "bg-yellow-600 dark:bg-yellow-600 border-yellow-700 dark:border-yellow-400 text-gray-800 dark:text-white"
-                    : foundIndex === index
-                    ? "bg-green-500 dark:bg-green-600 border-green-700 dark:border-green-400 text-gray-800 dark:text-white"
-                    : "bg-gray-200 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white"
-                }`}
-              >
-                <span className="text-xl font-bold">{element}</span>
-                <span className="absolute -bottom-6 text-sm font-medium text-gray-600 dark:text-gray-400">
-                  [{index}]
-                </span>
+              <div key={index} className="flex flex-col items-center">
+                <div
+                  ref={(el) => (elementRefs.current[index] = el)}
+                  className={`w-16 h-16 flex items-center justify-center rounded-lg border-2 transition-all duration-300 text-lg font-medium ${
+                    foundIndex === index
+                      ? "bg-green-500 dark:bg-green-600 border-green-700 dark:border-green-400 text-gray-800 dark:text-white"
+                      : currentIndex === index && foundIndex === -1
+                      ? "bg-yellow-500 dark:bg-yellow-600 border-yellow-700 dark:border-yellow-400 text-gray-800 dark:text-white"
+                      : index < currentIndex
+                      ? "bg-blue-300 dark:bg-blue-700 border-blue-500 dark:border-blue-400 text-gray-800 dark:text-white"
+                      : "bg-gray-200 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white"
+                  }`}
+                >
+                  {element}
+                </div>
+                <div className="mt-1 text-sm text-gray-600 dark:text-gray-400 text-center">[{index}]</div>
               </div>
             ))}
           </div>
 
-          {/* Legend */}
           <div className="mt-8 flex flex-wrap justify-center gap-4">
             <div className="flex items-center">
               <div className="w-4 h-4 bg-yellow-500 dark:bg-yellow-600 rounded mr-2"></div>
@@ -253,6 +252,10 @@ const LinearSearch = () => {
             <div className="flex items-center">
               <div className="w-4 h-4 bg-green-500 dark:bg-green-600 rounded mr-2"></div>
               <span className="text-sm">Found Element</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-blue-300 dark:bg-blue-700 rounded mr-2"></div>
+              <span className="text-sm">Checked Elements</span>
             </div>
             <div className="flex items-center">
               <div className="w-4 h-4 bg-gray-200 dark:bg-gray-900 rounded mr-2"></div>
