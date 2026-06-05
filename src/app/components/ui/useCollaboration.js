@@ -55,6 +55,7 @@ export function useCollaboration({
   const [connectionStatus, setConnectionStatus] = useState("idle");
   const [participants, setParticipants] = useState([]);
   const [annotations, setAnnotations] = useState([]);
+  const [cursors, setCursors] = useState({});
   const [presenterId, setPresenterId] = useState(null);
   const [recording, setRecording] = useState(false);
   const [recordedEvents, setRecordedEvents] = useState([]);
@@ -250,6 +251,20 @@ export function useCollaboration({
       processEnvelope(payload);
     });
 
+    channel.on("broadcast", { event: "cursor:move" }, ({ payload }) => {
+      if (payload && payload.senderId) {
+        setCursors((prev) => ({
+          ...prev,
+          [payload.senderId]: {
+            x: payload.x,
+            y: payload.y,
+            name: payload.name,
+            timestamp: Date.now(),
+          },
+        }));
+      }
+    });
+
     const subscribed = await new Promise((resolve) => {
       channel.subscribe((status) => resolve(status));
     });
@@ -339,6 +354,7 @@ export function useCollaboration({
     setConnectionStatus("idle");
     setParticipants([]);
     setAnnotations([]);
+    setCursors({});
     setPresenterId(null);
     presenterIdRef.current = null;
     seenSequencesRef.current = new Map();
@@ -371,6 +387,23 @@ export function useCollaboration({
   const updateState = useCallback((delta) => {
     return sendEnvelope("state:update", { delta });
   }, [sendEnvelope]);
+
+  const sendCursor = useCallback(
+    (x, y) => {
+      if (!channelRef.current || !sessionRef.current) return;
+      channelRef.current.send({
+        type: "broadcast",
+        event: "cursor:move",
+        payload: {
+          senderId: clientId,
+          name: currentDisplayNameRef.current,
+          x,
+          y,
+        },
+      });
+    },
+    [clientId]
+  );
 
   const startRecording = useCallback(() => {
     setRecordedEvents([]);
@@ -409,6 +442,7 @@ export function useCollaboration({
       connectionStatus,
       participants,
       annotations,
+      cursors,
       presenterId,
       recording,
       recordedEvents,
@@ -418,6 +452,7 @@ export function useCollaboration({
       joinSession,
       leaveSession,
       sendEnvelope: updateState,
+      sendCursor,
       requestControl,
       grantControl,
       addAnnotation,
@@ -435,6 +470,7 @@ export function useCollaboration({
       clearRecording,
       clientId,
       connectionStatus,
+      cursors,
       createSession,
       error,
       exportRecording,
@@ -450,6 +486,7 @@ export function useCollaboration({
       session,
       stopRecording,
       startRecording,
+      sendCursor,
       updateState,
     ],
   );
