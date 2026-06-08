@@ -643,6 +643,47 @@ export default function ArenaPage() {
               </div>
             </div>
 
+            {/* Smart Revision Planner */}
+<div className="bg-white dark:bg-neutral-800 border border-slate-100 dark:border-neutral-800/80 rounded-2xl p-5 shadow-sm">
+  <div className="flex items-center justify-between mb-4">
+    <h3 className="text-sm font-bold text-slate-800 dark:text-neutral-200">
+      📚 Revision Planner
+    </h3>
+    <span className="text-[10px] text-slate-400">
+      Weekly Plan
+    </span>
+  </div>
+
+  <div className="space-y-3">
+    <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+      <p className="text-xs font-semibold">
+        Binary Search
+      </p>
+      <p className="text-[10px] text-slate-500">
+        Last revised 14 days ago • High Priority
+      </p>
+    </div>
+
+    <div className="p-3 rounded-xl bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800">
+      <p className="text-xs font-semibold">
+        Linked List
+      </p>
+      <p className="text-[10px] text-slate-500">
+        Revision due in 2 days
+      </p>
+    </div>
+
+    <div className="p-3 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+      <p className="text-xs font-semibold">
+        Arrays
+      </p>
+      <p className="text-[10px] text-slate-500">
+        Recently revised
+      </p>
+    </div>
+  </div>
+</div>
+
             {/* Badges Grid */}
             <div className="bg-white dark:bg-neutral-800 border border-slate-100 dark:border-neutral-800/80 rounded-2xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
