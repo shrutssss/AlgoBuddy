@@ -4,12 +4,36 @@ import { useUser } from "@/features/user/UserContext";
 import { toast } from "react-hot-toast";
 import { persistence } from "@/lib/persistence";
 
+import { supabase } from "@/lib/supabase";
+
 async function apiFetch(url, options = {}) {
-  const response = await fetch(url, {
-    headers: { "Content-Type": "application/json", ...options.headers },
+  let finalUrl = url;
+  const headers = { "Content-Type": "application/json", ...options.headers };
+
+  if (process.env.NEXT_PUBLIC_USE_SPRING_BOOT_API === "true") {
+    finalUrl = "http://localhost:8080" + url.replace("/api/bookmarks", "/api/v1/bookmarks");
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      headers["Authorization"] = `Bearer ${session.access_token}`;
+    }
+  }
+
+  const response = await fetch(finalUrl, {
     ...options,
+    headers,
   });
-  const data = await response.json().catch(() => ({}));
+  
+  // Spring Boot POST/DELETE returns empty body
+  if (response.status === 200 && response.headers.get("content-length") === "0") {
+    return {};
+  }
+  
+  const text = await response.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch (e) {}
+
   if (!response.ok) throw new Error(data.error || "Request failed");
   return data;
 }
