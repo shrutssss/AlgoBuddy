@@ -393,6 +393,9 @@ export default function PracticePage() {
               </Link>
             </div>
 
+          </div>
+        </div>
+
         {/* Center Content */}
         <div className="flex-1 min-w-0 space-y-6">
           
@@ -1115,7 +1118,7 @@ export default function PracticePage() {
           activityData={activityData}
         />
 
-      </div>
+      </main>
 
       {/* Theory Drawer */}
       <TheoryDrawer
