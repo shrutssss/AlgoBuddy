@@ -6,6 +6,9 @@ import PlaybackControls from "@/app/components/ui/PlaybackControls";
 import Breadcrumbs from "@/app/components/ui/Breadcrumbs";
 import { createVisualizerPaths } from "@/app/visualizer/components/VisualizerPageLayout";
 import { generateDeleteSteps } from "@/features/algorithms/tree/bstDeleteLogic";
+import { generateInOrderSteps } from "@/features/algorithms/tree/bstInOrderLogic";
+import { generatePreOrderSteps } from "@/features/algorithms/tree/bstPreOrderLogic";
+import { CustomInputPanel } from "@/app/visualizer/components/CustomInputPanel";
 import {
   Info,
   Layers,
@@ -383,239 +386,32 @@ export default function TreeBSTVisualizer({ initialMode }) {
     setMessage(`Generated beautiful BST with ${sequence.length} nodes.`);
   }, [resetPlayback]);
 
-
-
-
-
-
-
-  const generateInOrderSteps = (treeRoot) => {
-    const records = [];
-    const visited = [];
-
-    const traverse = (node) => {
-      if (!node) return;
-
-      if (node.left) {
-        records.push({
-          currentNode: node.left.value,
-          visited: [...visited],
-          explanation: `Move to the left child of ${node.value} -> ${node.left.value}.`,
-          codeLine: 1,
-          highlightedNodes: { [node.value]: "active", [node.left.value]: "visiting" }
-        });
-        traverse(node.left);
-      } else {
-        records.push({
-          currentNode: node.value,
-          visited: [...visited],
-          explanation: `Node ${node.value} has no left child. Backtracking to visit it now.`,
-          codeLine: 1,
-          highlightedNodes: { [node.value]: "active" }
-        });
-      }
-
-      visited.push(node.value);
-      records.push({
-        currentNode: node.value,
-        visited: [...visited],
-        explanation: `Visit node ${node.value} and add it to the inorder result.`,
-        codeLine: 2,
-        highlightedNodes: { [node.value]: "visiting" }
+  const handleCustomTreeInput = useCallback((parsedArray) => {
+    if (parsedArray === null) {
+      generateRandomTree();
+    } else {
+      resetPlayback();
+      let newRoot = null;
+      parsedArray.forEach(val => {
+        newRoot = insertNodeFunctional(newRoot, val);
       });
+      setRoot(newRoot);
+      setTargetTreeRoot(newRoot);
+      setMessage(`Generated custom BST with ${parsedArray.length} nodes.`);
+    }
+  }, [generateRandomTree, resetPlayback]);
 
-      if (node.right) {
-        records.push({
-          currentNode: node.right.value,
-          visited: [...visited],
-          explanation: `Move to the right child of ${node.value} -> ${node.right.value}.`,
-          codeLine: 3,
-          highlightedNodes: { [node.value]: "active", [node.right.value]: "visiting" }
-        });
-        traverse(node.right);
-      } else {
-        records.push({
-          currentNode: node.value,
-          visited: [...visited],
-          explanation: `Node ${node.value} has no right child. Backtracking...`,
-          codeLine: 3,
-          highlightedNodes: { [node.value]: "active" }
-        });
-      }
-    };
 
-    records.push({
-      currentNode: treeRoot.value,
-      visited: [],
-      explanation: `Start In-Order traversal from the root node ${treeRoot.value}.`,
-      codeLine: 0,
-      highlightedNodes: {}
-    });
 
-    traverse(treeRoot);
 
-    records.push({
-      currentNode: null,
-      visited: [...visited],
-      explanation: `In-Order traversal is complete! Visited nodes: [${visited.join(", ")}].`,
-      codeLine: 4,
-      highlightedNodes: {}
-    });
 
-    return records;
-  };
 
-  const generatePreOrderSteps = (treeRoot) => {
-    const records = [];
-    const visited = [];
 
-    const traverse = (node) => {
-      if (!node) return;
 
-      visited.push(node.value);
-      records.push({
-        currentNode: node.value,
-        visited: [...visited],
-        explanation: `Visit node ${node.value} before traversing its children.`,
-        codeLine: 2,
-        highlightedNodes: { [node.value]: "visiting" }
-      });
 
-      if (node.left) {
-        records.push({
-          currentNode: node.left.value,
-          visited: [...visited],
-          explanation: `Move to the left child of ${node.value} -> ${node.left.value}.`,
-          codeLine: 3,
-          highlightedNodes: { [node.value]: "active", [node.left.value]: "visiting" }
-        });
-        traverse(node.left);
-      } else {
-        records.push({
-          currentNode: node.value,
-          visited: [...visited],
-          explanation: `Node ${node.value} has no left child. Skipping left subtree.`,
-          codeLine: 3,
-          highlightedNodes: { [node.value]: "active" }
-        });
-      }
 
-      if (node.right) {
-        records.push({
-          currentNode: node.right.value,
-          visited: [...visited],
-          explanation: `Move to the right child of ${node.value} -> ${node.right.value}.`,
-          codeLine: 4,
-          highlightedNodes: { [node.value]: "active", [node.right.value]: "visiting" }
-        });
-        traverse(node.right);
-      } else {
-        records.push({
-          currentNode: node.value,
-          visited: [...visited],
-          explanation: `Node ${node.value} has no right child. Skipping right subtree.`,
-          codeLine: 4,
-          highlightedNodes: { [node.value]: "active" }
-        });
-      }
-    };
 
-    records.push({
-      currentNode: treeRoot.value,
-      visited: [],
-      explanation: `Start Pre-Order traversal from the root node ${treeRoot.value}.`,
-      codeLine: 0,
-      highlightedNodes: {}
-    });
 
-    traverse(treeRoot);
-
-    records.push({
-      currentNode: null,
-      visited: [...visited],
-      explanation: `Pre-Order traversal is complete! Visited nodes: [${visited.join(", ")}].`,
-      codeLine: 5,
-      highlightedNodes: {}
-    });
-
-    return records;
-  };
-
-  const generatePostOrderSteps = (treeRoot) => {
-    const records = [];
-    const visited = [];
-
-    const traverse = (node) => {
-      if (!node) return;
-
-      if (node.left) {
-        records.push({
-          currentNode: node.left.value,
-          visited: [...visited],
-          explanation: `Move to the left child of ${node.value} -> ${node.left.value}.`,
-          codeLine: 1,
-          highlightedNodes: { [node.value]: "active", [node.left.value]: "visiting" }
-        });
-        traverse(node.left);
-      } else {
-        records.push({
-          currentNode: node.value,
-          visited: [...visited],
-          explanation: `Node ${node.value} has no left child. Backtracking...`,
-          codeLine: 1,
-          highlightedNodes: { [node.value]: "active" }
-        });
-      }
-
-      if (node.right) {
-        records.push({
-          currentNode: node.right.value,
-          visited: [...visited],
-          explanation: `Move to the right child of ${node.value} -> ${node.right.value}.`,
-          codeLine: 2,
-          highlightedNodes: { [node.value]: "active", [node.right.value]: "visiting" }
-        });
-        traverse(node.right);
-      } else {
-        records.push({
-          currentNode: node.value,
-          visited: [...visited],
-          explanation: `Node ${node.value} has no right child. Backtracking...`,
-          codeLine: 2,
-          highlightedNodes: { [node.value]: "active" }
-        });
-      }
-
-      visited.push(node.value);
-      records.push({
-        currentNode: node.value,
-        visited: [...visited],
-        explanation: `Visit node ${node.value} after both subtrees are done.`,
-        codeLine: 4,
-        highlightedNodes: { [node.value]: "visiting" }
-      });
-    };
-
-    records.push({
-      currentNode: treeRoot.value,
-      visited: [],
-      explanation: `Start Post-Order traversal from the root node ${treeRoot.value}.`,
-      codeLine: 0,
-      highlightedNodes: {}
-    });
-
-    traverse(treeRoot);
-
-    records.push({
-      currentNode: null,
-      visited: [...visited],
-      explanation: `Post-Order traversal is complete! Visited nodes: [${visited.join(", ")}].`,
-      codeLine: 5,
-      highlightedNodes: {}
-    });
-
-    return records;
-  };
 
   const preCalculateSteps = () => {
     if (!root) return [];
@@ -1200,6 +996,13 @@ export default function TreeBSTVisualizer({ initialMode }) {
                 })}
               </div>
             </div>
+
+            {/* Custom Input Panel for Tree */}
+            <CustomInputPanel
+              inputType="array"
+              onApply={handleCustomTreeInput}
+              currentData={[]}
+            />
 
             {/* Quiz Challenge Card */}
             <div className="bg-gray-50 dark:bg-slate-900/70 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col gap-4 shadow-lg shadow-black/20">

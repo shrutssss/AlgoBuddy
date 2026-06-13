@@ -21,6 +21,7 @@ export default function PlaybackControls({
   onExplainStep,
   stepAnnouncement = "",
 }) {
+  // Support both `isPaused`/`onTogglePlayPause` (new) and `isPlaying`/`onPlayPause` (legacy) prop conventions.
   const isPlaying = pausedProp !== undefined ? !pausedProp : (playingProp ?? false);
   const handlePlayPause = toggleProp || playPauseProp || (() => {});
   return (
