@@ -3,6 +3,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const Redis = require("ioredis");
 const { createAdapter } = require("@socket.io/redis-adapter");
 
@@ -12,10 +13,10 @@ app.use(cors());
 const server = http.createServer(app);
 
 // Redis setup
-const redisUrl = process.env.REDIS_URL; // Required for Render
+const redisUrl = process.env.REDIS_URL;
 const pubClient = redisUrl ? new Redis(redisUrl) : new Redis();
 const subClient = pubClient.duplicate();
-const redisClient = pubClient.duplicate(); // For state storage
+const redisClient = pubClient.duplicate();
 
 const io = new Server(server, {
   cors: {
@@ -41,7 +42,36 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 4000;
 
-// Rate Limiting Config
+// JWT Authentication
+const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+function verifyAuthToken(token) {
+  if (!token || !SUPABASE_JWT_SECRET) return null;
+  try {
+    const decoded = jwt.verify(token, SUPABASE_JWT_SECRET, { algorithms: ["HS256"] });
+    return decoded;
+  } catch (err) {
+    return null;
+  }
+}
+
+// Connection rate limiting to prevent JWT brute-forcing
+const connectionAttempts = new Map();
+const MAX_CONNECTION_ATTEMPTS = 5;
+const CONNECTION_ATTEMPT_WINDOW_MS = 60000;
+
+function isConnectionRateLimited(ip) {
+  const now = Date.now();
+  const entry = connectionAttempts.get(ip);
+  if (!entry || now > entry.resetTime) {
+    connectionAttempts.set(ip, { count: 1, resetTime: now + CONNECTION_ATTEMPT_WINDOW_MS });
+    return false;
+  }
+  entry.count++;
+  return entry.count > MAX_CONNECTION_ATTEMPTS;
+}
+
+// Rate Limiting Config (Redis-backed token bucket)
 const MAX_TOKENS = 10;
 const REFILL_RATE_MS = 200;
 
@@ -49,7 +79,6 @@ async function isRateLimited(socketId) {
   const key = `ratelimit:${socketId}`;
   const now = Date.now();
   
-  // Use a simple Lua script for atomic rate limiting token bucket
   const script = `
     local key = KEYS[1]
     local now = tonumber(ARGV[1])
@@ -83,15 +112,35 @@ async function isRateLimited(socketId) {
   `;
   
   const result = await redisClient.eval(script, 1, key, now, MAX_TOKENS, REFILL_RATE_MS);
-  return result === 1; // 1 means rate limited, 0 means allowed
+  return result === 1;
 }
 
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
+  // Connection-level rate limiting to prevent JWT brute-forcing
+  const clientIp = socket.handshake.address;
+  if (isConnectionRateLimited(clientIp)) {
+    socket.emit("error", { message: "Too many connection attempts. Please try again later." });
+    socket.disconnect(true);
+    return;
+  }
+
+  // Verify Supabase JWT from handshake auth
+  const token = socket.handshake.auth?.token;
+  const authPayload = verifyAuthToken(token);
+  if (!authPayload) {
+    socket.emit("error", { message: "Authentication required. Please sign in again." });
+    socket.disconnect(true);
+    return;
+  }
+
+  // Store verified userId from the JWT payload — never trust client-supplied userId
+  socket.data.userId = authPayload.sub || authPayload.id;
+  console.log(`Authenticated user connected: ${socket.id}, userId: ${socket.data.userId}`);
 
   socket.on("join_matchmaking", async (data) => {
     if (await isRateLimited(socket.id)) return;
     
+    console.log(`User joined matchmaking: userId=${socket.data.userId}`);
     const targetTopic = data.topic || "Arrays";
     const targetDifficulty = data.difficulty || "Easy";
     const queueKey = `queue:${targetTopic}:${targetDifficulty}`;
@@ -102,7 +151,7 @@ io.on("connection", (socket) => {
       const elements = await redisClient.lrange(existingQueueKey, 0, -1);
       for (const el of elements) {
         const parsed = JSON.parse(el);
-        if (parsed.socketId === socket.id || parsed.userId === data.userId) {
+        if (parsed.socketId === socket.id || parsed.userId === socket.data.userId) {
           await redisClient.lrem(existingQueueKey, 0, el);
         }
       }
@@ -113,16 +162,14 @@ io.on("connection", (socket) => {
     while (!matchFound) {
       const opponentStr = await redisClient.lpop(queueKey);
       if (!opponentStr) {
-        break; // Queue is empty
+        break;
       }
       
       const opponent = JSON.parse(opponentStr);
-      if (opponent.userId === data.userId) {
-        // Same user (e.g. ghost queue entry), ignore them and pop next
+      if (opponent.userId === socket.data.userId) {
         continue; 
       }
       
-      // Match found!
       matchFound = true;
       const matchId = `match-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -133,32 +180,28 @@ io.on("connection", (socket) => {
         status: "in-progress",
         players: [
           { userId: opponent.userId, name: opponent.name, socketId: opponent.socketId },
-          { userId: data.userId, name: data.name, socketId: socket.id },
+          { userId: socket.data.userId, name: data.name || "Player", socketId: socket.id },
         ],
       };
 
-      // Save to active matches state globally
       await redisClient.set(`match:${matchId}`, JSON.stringify(matchDetails));
       await redisClient.hset(`socket:${socket.id}`, "matchId", matchId);
       await redisClient.hset(`socket:${opponent.socketId}`, "matchId", matchId);
       await redisClient.hdel(`socket:${socket.id}`, "queueKey");
       await redisClient.hdel(`socket:${opponent.socketId}`, "queueKey");
 
-      // Notify both players
       io.to(opponent.socketId).emit("match_found", matchDetails);
       io.to(socket.id).emit("match_found", matchDetails);
 
-      // Join room for real-time duel syncing using socket.io adapter's remote join feature
       socket.join(matchId);
       io.in(opponent.socketId).socketsJoin(matchId);
       
-      console.log(`Match found: ${opponent.userId} vs ${data.userId}`);
+      console.log(`Match found: ${opponent.userId} vs ${socket.data.userId}`);
       break;
     }
 
     if (!matchFound) {
-      // Add to queue
-      const queueData = JSON.stringify({ ...data, topic: targetTopic, difficulty: targetDifficulty, socketId: socket.id });
+      const queueData = JSON.stringify({ ...data, userId: socket.data.userId, topic: targetTopic, difficulty: targetDifficulty, socketId: socket.id });
       await redisClient.rpush(queueKey, queueData);
       await redisClient.hset(`socket:${socket.id}`, "queueKey", queueKey);
       console.log(`Added to queue ${queueKey}`);
@@ -181,6 +224,9 @@ io.on("connection", (socket) => {
   });
 
   socket.on("join_match", async (data) => {
+    // Verify the socket is a participant in the match before allowing room join
+    const matchId = await redisClient.hget(`socket:${socket.id}`, "matchId");
+    if (!matchId || matchId !== data.matchId) return;
     socket.join(data.matchId);
   });
 
@@ -189,13 +235,13 @@ io.on("connection", (socket) => {
     if (await isRateLimited(socket.id)) return;
     socket.to(data.matchId).emit("opponent_code_update", {
       code: data.code,
-      userId: data.userId
+      userId: socket.data.userId
     });
   });
 
   socket.on("test_submit", async (data) => {
     if (await isRateLimited(socket.id)) return;
-    socket.to(data.matchId).emit("opponent_test_submit", { userId: data.userId });
+    socket.to(data.matchId).emit("opponent_test_submit", { userId: socket.data.userId });
   });
 
   socket.on("test_result", async (data) => {
@@ -205,7 +251,7 @@ io.on("connection", (socket) => {
     if (!matchId || matchId !== data.matchId) return;
 
     socket.to(data.matchId).emit("opponent_test_result", {
-      userId: data.userId,
+      userId: socket.data.userId,
       passed: data.passed,
       total: data.total,
       status: data.status
@@ -225,12 +271,12 @@ io.on("connection", (socket) => {
         match.status = "completed";
         await redisClient.set(`match:${matchId}`, JSON.stringify(match));
         
-        io.in(matchId).emit("match_ended", { winnerId: data.winnerId });
+        io.in(matchId).emit("match_ended", { winnerId: socket.data.userId });
         
         for (const p of match.players) {
           await redisClient.hdel(`socket:${p.socketId}`, "matchId");
         }
-        await redisClient.expire(`match:${matchId}`, 60 * 60); // Keep for 1 hour for debugging
+        await redisClient.expire(`match:${matchId}`, 60 * 60);
       }
     }
   });
