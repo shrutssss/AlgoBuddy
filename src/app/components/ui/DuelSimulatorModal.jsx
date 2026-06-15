@@ -58,9 +58,35 @@ export default function DuelSimulatorModal({ isOpen, onClose, opponent, currentU
     setSocket(newSocket);
 
     // Join room when connected
-    newSocket.on("connect", () => {
+    newSocket.on("connect", async () => {
       if (opponent?.matchId) {
          newSocket.emit("join_match", { matchId: opponent.matchId, userId: currentUserStats?.userId });
+
+         const { supabase } = await import('@/lib/supabase');
+         const { data: sessionData } = await supabase.auth.getSession();
+         const token = sessionData?.session?.access_token;
+         if (token) {
+           const springBootBase = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" 
+             ? "http://localhost:8080" 
+             : "https://algobuddy-backend-7iwv.onrender.com";
+           try {
+             await fetch(`${springBootBase}/api/v1/arena/match/init`, {
+               method: "POST",
+               headers: {
+                 "Content-Type": "application/json",
+                 Authorization: `Bearer ${token}`
+               },
+               body: JSON.stringify({
+                 matchId: opponent.matchId,
+                 opponentId: opponent.userId,
+                 topic: opponent.topic || "Arrays",
+                 difficulty: "Easy"
+               })
+             });
+           } catch (e) {
+             console.error("Failed to init match:", e);
+           }
+         }
       }
     });
 
