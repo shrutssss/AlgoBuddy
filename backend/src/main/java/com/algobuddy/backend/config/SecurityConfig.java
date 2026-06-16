@@ -74,6 +74,9 @@ public class SecurityConfig {
     @Value("${supabase.url}")
     private String supabaseUrl;
 
+    @Value("${supabase.jwt-secret}")
+    private String supabaseJwtSecret;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -93,8 +96,11 @@ public class SecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        String jwkSetUri = supabaseUrl + "/rest/v1/jwks";
-        return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+        byte[] secretBytes = supabaseJwtSecret.getBytes(StandardCharsets.UTF_8);
+        SecretKeySpec secretKey = new SecretKeySpec(secretBytes, "HmacSHA256");
+        return NimbusJwtDecoder.withSecretKey(secretKey)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
     }
 
     @Bean

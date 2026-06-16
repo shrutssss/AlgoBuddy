@@ -1,12 +1,10 @@
-require("dotenv").config({ path: '../.env.local' });
+require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
-const jwksClient = require('jwks-rsa');
-const redisUrl = process.env.REDIS_URL;
-const Redis = redisUrl ? require("ioredis") : require("ioredis-mock");
+const Redis = require("ioredis");
 const { createAdapter } = require("@socket.io/redis-adapter");
 
 const app = express();
@@ -15,6 +13,7 @@ app.use(cors());
 const server = http.createServer(app);
 
 // Redis setup
+const redisUrl = process.env.REDIS_URL;
 const pubClient = redisUrl ? new Redis(redisUrl) : new Redis();
 const subClient = pubClient.duplicate();
 const redisClient = pubClient.duplicate();
@@ -44,37 +43,16 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 4000;
 
 // JWT Authentication
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-const client = jwksClient({
-  jwksUri: `${SUPABASE_URL}/rest/v1/jwks`
-});
-
-function getKey(header, callback){
-  client.getSigningKey(header.kid, function(err, key) {
-    if (err) {
-      callback(err, null);
-      return;
-    }
-    const signingKey = key.publicKey || key.rsaPublicKey;
-    callback(null, signingKey);
-  });
-}
+const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
 
 function verifyAuthToken(token) {
-  return new Promise((resolve) => {
-    if (!token || !SUPABASE_URL) {
-      resolve(null);
-      return;
-    }
-    jwt.verify(token, getKey, { algorithms: ["ES256", "RS256"] }, function(err, decoded) {
-      if (err) {
-        resolve(null);
-      } else {
-        resolve(decoded);
-      }
-    });
-  });
+  if (!token || !SUPABASE_JWT_SECRET) return null;
+  try {
+    const decoded = jwt.verify(token, SUPABASE_JWT_SECRET, { algorithms: ["HS256"] });
+    return decoded;
+  } catch (err) {
+    return null;
+  }
 }
 
 // Connection rate limiting to prevent JWT brute-forcing
@@ -147,7 +125,7 @@ async function isRateLimited(userId) {
   return result === 1;
 }
 
-io.on("connection", async (socket) => {
+io.on("connection", (socket) => {
   // Connection-level rate limiting to prevent JWT brute-forcing
   const clientIp = socket.handshake.address;
   if (isConnectionRateLimited(clientIp)) {
@@ -156,9 +134,9 @@ io.on("connection", async (socket) => {
     return;
   }
 
-  // Verify Supabase JWT from handshake auth using JWKS
+  // Verify Supabase JWT from handshake auth
   const token = socket.handshake.auth?.token;
-  const authPayload = await verifyAuthToken(token);
+  const authPayload = verifyAuthToken(token);
   if (!authPayload) {
     socket.emit("error", { message: "Authentication required. Please sign in again." });
     socket.disconnect(true);
