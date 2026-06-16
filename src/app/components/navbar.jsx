@@ -117,6 +117,26 @@ export default function Navbar() {
       );
   }, []);
 
+  useEffect(() => {
+    const handleToggleNotifications = () => {
+      setNotificationsOpen(prev => !prev);
+    };
+    
+    const handleGlobalEscape = () => {
+      setNotificationsOpen(false);
+      setUserMenuOpen(false);
+      setMenuOpen(false);
+    };
+
+    window.addEventListener("toggle-notifications", handleToggleNotifications);
+    window.addEventListener("global-escape", handleGlobalEscape);
+
+    return () => {
+      window.removeEventListener("toggle-notifications", handleToggleNotifications);
+      window.removeEventListener("global-escape", handleGlobalEscape);
+    }
+  }, []);
+
   // FIX: Prevent background scrolling when mobile menu is open
   useEffect(() => {
     if (menuOpen) {
@@ -239,6 +259,19 @@ export default function Navbar() {
                         {user.email}
                       </p>
                     </div>
+
+                    <ProfileProgress compact={true} />
+
+                    <Link
+                      href="/profile"
+                      onClick={() =>
+                        setUserMenuOpen(false)
+                      }
+                      className="flex items-center gap-2.5 px-4 py-3 text-[14px] font-medium text-surface-900 dark:text-[#f5f5f5] hover:bg-surface-50 dark:hover:bg-udemy-dark-border transition-colors focus-ring border-b border-surface-100 dark:border-udemy-dark-border"
+                    >
+                      <User className="w-4 h-4 text-surface-500" />
+                      Profile
+                    </Link>
 
                     <Link
                       href="/arena"
