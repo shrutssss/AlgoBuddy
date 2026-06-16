@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Briefcase, MapPin, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "react-hot-toast";
+import {
+  Briefcase, MapPin, Calendar, ChevronLeft, ChevronRight,
+  Send, CheckCircle, X
+} from "lucide-react";
 
 export default function StudentJobsPage() {
   const [jobs, setJobs] = useState([]);
@@ -9,6 +13,9 @@ export default function StudentJobsPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalJobs, setTotalJobs] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [appliedIds, setAppliedIds] = useState(new Set());
+  const [applying, setApplying] = useState(null);
+  const [confirmJob, setConfirmJob] = useState(null);
 
   async function fetchJobs(page) {
     setLoading(true);
@@ -26,9 +33,45 @@ export default function StudentJobsPage() {
     }
   }
 
+  async function fetchApplications() {
+    try {
+      const res = await fetch("/api/applications?limit=200");
+      const data = await res.json();
+      const ids = new Set((data.applications || []).map((a) => a.job_id));
+      setAppliedIds(ids);
+    } catch (err) {
+      console.error("Failed to fetch applications:", err);
+    }
+  }
+
   useEffect(() => {
     fetchJobs(currentPage);
+    fetchApplications();
   }, [currentPage]);
+
+  async function handleApply(jobId) {
+    setApplying(jobId);
+    setConfirmJob(null);
+    try {
+      const res = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Failed to apply");
+        return;
+      }
+      toast.success(data.message || "Application submitted!");
+      setAppliedIds((prev) => new Set(prev).add(jobId));
+    } catch (err) {
+      toast.error("Something went wrong. Please try again.");
+      console.error("Apply error:", err);
+    } finally {
+      setApplying(null);
+    }
+  }
 
   function handlePrev() {
     if (currentPage > 1) setCurrentPage((p) => p - 1);
@@ -71,38 +114,59 @@ export default function StudentJobsPage() {
         ) : (
           <>
             <div className="space-y-4">
-              {jobs.map((job) => (
-                <div key={job.id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h2 className="text-xl font-semibold text-gray-900">{job.title}</h2>
-                      <p className="text-indigo-600 font-medium mt-1">{job.company}</p>
-                      <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-500">
-                        {job.location && (
+              {jobs.map((job) => {
+                const alreadyApplied = appliedIds.has(job.id);
+                return (
+                  <div key={job.id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h2 className="text-xl font-semibold text-gray-900">{job.title}</h2>
+                        <p className="text-indigo-600 font-medium mt-1">{job.company}</p>
+                        <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-500">
+                          {job.location && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-4 w-4" />
+                              {job.location}
+                            </span>
+                          )}
+                          {job.job_type && (
+                            <span className="capitalize">{job.job_type.replace("-", " ")}</span>
+                          )}
+                          {job.experience_level && (
+                            <span className="capitalize">{job.experience_level.replace("-", " ")}</span>
+                          )}
                           <span className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            {job.location}
+                            <Calendar className="h-4 w-4" />
+                            {new Date(job.created_at).toLocaleDateString()}
                           </span>
+                        </div>
+                        {job.salary_range && (
+                          <p className="mt-2 text-sm font-medium text-green-600">{job.salary_range}</p>
                         )}
-                        {job.job_type && (
-                          <span className="capitalize">{job.job_type.replace("-", " ")}</span>
-                        )}
-                        {job.experience_level && (
-                          <span className="capitalize">{job.experience_level.replace("-", " ")}</span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {new Date(job.created_at).toLocaleDateString()}
-                        </span>
+                        <p className="mt-3 text-gray-600 line-clamp-3">{job.description}</p>
                       </div>
-                      {job.salary_range && (
-                        <p className="mt-2 text-sm font-medium text-green-600">{job.salary_range}</p>
-                      )}
-                      <p className="mt-3 text-gray-600 line-clamp-3">{job.description}</p>
+
+                      <div className="ml-6 flex-shrink-0 self-start">
+                        {alreadyApplied ? (
+                          <span className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg">
+                            <CheckCircle className="h-4 w-4" />
+                            Applied
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmJob(job)}
+                            disabled={applying === job.id}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                          >
+                            <Send className="h-4 w-4" />
+                            {applying === job.id ? "Applying..." : "Apply with Profile"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {totalPages > 1 && (
@@ -161,6 +225,40 @@ export default function StudentJobsPage() {
           </>
         )}
       </div>
+
+      {confirmJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Confirm Application</h3>
+              <button onClick={() => setConfirmJob(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600">
+              Your profile details (name, email, branch, CGPA, skills, resume link) will be shared with <strong>{confirmJob.company}</strong> for the position of <strong>{confirmJob.title}</strong>.
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setConfirmJob(null)}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const id = confirmJob.id;
+                  setConfirmJob(null);
+                  handleApply(id);
+                }}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+              >
+                Apply Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
