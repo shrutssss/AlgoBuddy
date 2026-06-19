@@ -10,24 +10,26 @@ const Redis = redisUrl ? require("ioredis") : require("ioredis-mock");
 const { createAdapter } = require("@socket.io/redis-adapter");
 
 const app = express();
+const ALLOWED_ORIGINS = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://algobuddy.vercel.app",
+  "https://www.algobuddy.me",
+  "https://algobuddy.me"
+];
+
+function isOriginAllowed(origin, callback) {
+  // Allow requests with no origin (Render health checks, server-to-server)
+  if (!origin) return callback(null, true);
+  if (ALLOWED_ORIGINS.includes(origin) || origin.endsWith(".vercel.app")) {
+    callback(null, true);
+  } else {
+    callback(new Error("Not allowed by CORS"));
+  }
+}
+
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) {
-      return callback(new Error("Not allowed by CORS"));
-    }
-    const allowed = [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "https://algobuddy.vercel.app",
-      "https://www.algobuddy.me",
-      "https://algobuddy.me"
-    ];
-    if (allowed.includes(origin) || origin.endsWith(".vercel.app")) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: isOriginAllowed,
   methods: ["GET", "POST"],
 }));
 
@@ -40,23 +42,7 @@ const redisClient = pubClient.duplicate();
 
 const io = new Server(server, {
   cors: {
-    origin: (origin, callback) => {
-      if (!origin) {
-        return callback(new Error("Not allowed by CORS"));
-      }
-      const allowed = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://algobuddy.vercel.app",
-        "https://www.algobuddy.me",
-        "https://algobuddy.me"
-      ];
-      if (allowed.includes(origin) || origin.endsWith(".vercel.app")) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: isOriginAllowed,
     methods: ["GET", "POST"],
   },
   adapter: createAdapter(pubClient, subClient)
@@ -123,6 +109,37 @@ setInterval(() => {
     }
   }
 }, CONNECTION_ATTEMPT_WINDOW_MS);
+
+// Periodic queue health checker to remove stale entries from matchmaking queues
+setInterval(async () => {
+  try {
+    const queueKeys = await redisClient.keys('queue:*');
+    for (const key of queueKeys) {
+      const elements = await redisClient.lrange(key, 0, -1);
+      let changed = false;
+      for (const el of elements) {
+        const parsed = JSON.parse(el);
+        // Remove expired entries
+        if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
+          await redisClient.lrem(key, 0, el);
+          changed = true;
+          continue;
+        }
+        // Remove entries where socket is no longer connected
+        const socket = io.sockets.sockets.get(parsed.socketId);
+        if (!socket || !socket.connected) {
+          await redisClient.lrem(key, 0, el);
+          changed = true;
+        }
+      }
+      if (changed && elements.length === 0) {
+        await redisClient.expire(key, 60);
+      }
+    }
+  } catch (err) {
+    console.error('[queue-health] Error cleaning stale entries:', err.message);
+  }
+}, 30000);
 
 // Rate Limiting Config (Redis-backed token bucket)
 const MAX_TOKENS = 10;
@@ -222,9 +239,21 @@ io.on("connection", async (socket) => {
         }
         
         const opponent = JSON.parse(opponentStr);
+
+        // Discard expired entries
+        if (opponent.expiresAt && Date.now() > opponent.expiresAt) {
+          continue;
+        }
+
         if (opponent.userId === socket.data.userId) {
           skippedOpponents.push(opponentStr);
           continue; 
+        }
+
+        // Verify opponent socket is still connected
+        const opponentSocket = io.sockets.sockets.get(opponent.socketId);
+        if (!opponentSocket || !opponentSocket.connected) {
+          continue;
         }
         
         matchFound = true;
@@ -262,7 +291,15 @@ io.on("connection", async (socket) => {
       }
 
       if (!matchFound) {
-        const queueData = JSON.stringify({ ...data, userId: socket.data.userId, topic: targetTopic, difficulty: targetDifficulty, socketId: socket.id });
+        const queueData = JSON.stringify({
+          ...data,
+          userId: socket.data.userId,
+          topic: targetTopic,
+          difficulty: targetDifficulty,
+          socketId: socket.id,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 60000,
+        });
         await redisClient.rpush(queueKey, queueData);
         await redisClient.hset(`socket:${socket.id}`, "queueKey", queueKey);
         console.log(`Added to queue ${queueKey}`);
