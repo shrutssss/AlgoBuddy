@@ -26,7 +26,7 @@ const faqData = {
   "Getting Started": [
     { question: "How do I create an account?", answer: "You can create an account by clicking the 'Sign Up' button in the top right corner. You can use your email or sign in directly with Google or GitHub." },
     { question: "Do I need to install anything?", answer: "No, AlgoBuddy runs entirely in your web browser. There's no need to install any software or configure local environments." },
-    { question: "Where should I start?", answer: "If you're new, we recommend checking out the 'Getting Started' tutorial series in the Dashboard, which introduces basic arrays and loops." }
+    { question: "Where should I start?", answer: "If you're new, we recommend starting with the Practice page and the beginner tutorial series, which introduce basic arrays and loops." }
   ],
   "Visualizers": [
     { question: "How do visualizers work?", answer: "Visualizers take abstract code execution and render it graphically step-by-step. You can control the speed, pause, step forward, or step backward to understand exactly how variables and structures change." },
@@ -34,7 +34,7 @@ const faqData = {
     { question: "Are new algorithms being added?", answer: "Absolutely. We constantly update our library. If there's a specific algorithm you want to see, let us know in the community Discord!" }
   ],
   "Practice": [
-    { question: "How can I track my progress?", answer: "Once logged in, your progress is automatically saved. You can view your completed problems, current streak, and mastery level in your personal Dashboard." },
+    { question: "How can I track my progress?", answer: "Once logged in, your progress is automatically saved. You can view your completed problems, current streak, and mastery level on your profile." },
     { question: "Does the code editor support multiple languages?", answer: "Currently, our integrated code editor supports JavaScript, Python, Java, and C++. We are working on adding more languages soon." }
   ],
   "Arena": [
