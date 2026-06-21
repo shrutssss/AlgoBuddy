@@ -76,12 +76,10 @@ export default function PracticePage() {
     setMounted(true);
   }, []);
 
-  // Sync activeView and activeTab with the URL query params so browser Back/Forward works
+  // Sync activeView with the URL ?view= param so browser Back/Forward works
   useEffect(() => {
     const view = searchParams.get("view") || "problem-list";
     setActiveView(view);
-    const tab = searchParams.get("tab") || "problems";
-    setActiveTab(tab);
   }, [searchParams]);
 
   const ensureLoggedIn = () => {
@@ -341,16 +339,10 @@ export default function PracticePage() {
   }, [user]);
 
   const dailyChallenge = useMemo(() => {
-  const unsolvedProblems = allProblems.filter(
-    (problem) => getStatus(problem.id) !== "Completed"
-  );
-
-  if (unsolvedProblems.length === 0) return null;
-
-  const today = new Date().getDate();
-
-  return unsolvedProblems[today % unsolvedProblems.length];
-}, [allProblems, progress]);
+    if (allProblems.length === 0) return null;
+    const daySeed = Math.floor(new Date().setHours(0,0,0,0) / 86400000);
+    return allProblems[daySeed % allProblems.length];
+  }, [allProblems]);
 
   // Seed values if not loaded
   if (!mounted) return null;
@@ -627,10 +619,7 @@ export default function PracticePage() {
                 ].map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => {
-                      const currentView = searchParams.get("view") || "problem-list";
-                      router.push(`/practice?view=${currentView}&tab=${tab.id}`);
-                    }}
+                    onClick={() => setActiveTab(tab.id)}
                     className={`py-3.5 px-6 font-bold text-sm border-b-2 transition-all duration-200 ${
                       activeTab === tab.id
                         ? "border-primary text-primary dark:text-purple-400"
