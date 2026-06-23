@@ -8,7 +8,6 @@ import LinkedListModal from "@/app/components/models/LinkedListModal";
 import TreeModal from "@/app/components/models/TreeModal";
 import GraphModal from "@/app/components/models/GraphModal";
 import TutorialOverlay from "@/app/components/ui/TutorialOverlay";
-import BackToTop from "../components/ui/backtotop";
 import BookmarkSection from "@/app/components/ui/BookmarkSection";
 
 export const metadata = {
@@ -911,7 +910,6 @@ const Visualizer = () => {
 
       <div className="w-full relative">
         <BookmarkSection />
-        <BackToTop />
         <Footer />
       </div>
     </div>

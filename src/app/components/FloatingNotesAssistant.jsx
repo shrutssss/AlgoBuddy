@@ -75,8 +75,6 @@ const preprocessMarkdown = (text) => {
 
 export default function FloatingNotesAssistant() {
   const [open, setOpen] = useState(false);
-  const [hasScrolled, setHasScrolled] = useState(false);
-  const [isNearBottom, setIsNearBottom] = useState(false);
   const [editMode, setEditMode] = useState("write"); // 'write' or 'preview'
   const [copied, setCopied] = useState(false);
 
@@ -97,18 +95,6 @@ export default function FloatingNotesAssistant() {
     updateNote,
     deleteNote
   } = useNotesManager();
-
-  // Scroll detection to adjust positioning dynamically
-  useEffect(() => {
-    const handleScroll = () => {
-      setHasScrolled(window.scrollY > 300);
-      const distanceFromBottom = document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
-      setIsNearBottom(distanceFromBottom <= 300);
-    };
-    handleScroll();
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   // Format Helper for markdown tags
   const insertFormatting = (prefix, suffix = "") => {
@@ -163,11 +149,7 @@ export default function FloatingNotesAssistant() {
     window.dispatchEvent(event);
   };
 
-    const buttonPosition = hasScrolled && !isNearBottom
-      ? "bottom-[208px] right-3 sm:right-6"
-      : isNearBottom
-      ? "bottom-[152px] right-3 sm:right-6"
-      : "bottom-[152px] right-3 sm:right-6";
+  const buttonPosition = "bottom-[152px] right-3 sm:right-6";
 
   const panelPosition = "bottom-[80px] right-4 left-4 sm:bottom-[92px] sm:right-[88px] sm:left-auto";
 
