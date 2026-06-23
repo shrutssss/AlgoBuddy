@@ -524,6 +524,7 @@ io.on("connection", async (socket) => {
       
       socket.join(data.matchId);
       await redisClient.hset(`{arena}:socket:${socket.id}`, "matchId", data.matchId);
+      console.log(`Player ${socket.data.userId} re-joined match ${data.matchId}`);
     } catch (error) {
       console.error(`[join_match] Error for user ${socket.data.userId}:`, error);
     }
@@ -550,8 +551,12 @@ io.on("connection", async (socket) => {
     try {
       if (await isRateLimited(socket.data.userId)) return;
       const matchId = await redisClient.hget(`{arena}:socket:${socket.id}`, "matchId");
-      if (!matchId || matchId !== data.matchId) return;
+      if (!matchId || matchId !== data.matchId) {
+        console.log(`Player ${socket.data.userId} failed typing_status because matchId doesn't match: expected ${data.matchId}, got ${matchId}`);
+        return;
+      }
 
+      console.log(`Player ${socket.data.userId} emitted typing_status to room ${data.matchId}`);
       socket.to(data.matchId).emit("opponent_typing_status", {
         isTyping: data.isTyping,
         userId: socket.data.userId
