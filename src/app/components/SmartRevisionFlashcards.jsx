@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const flashcards = {
   Easy: [
@@ -58,6 +58,8 @@ export default function SmartRevisionFlashcards() {
   const [hardCompleted, setHardCompleted] = useState(0);
   const [streak, setStreak] = useState(1);
   const [history, setHistory] = useState([]);
+  const [dailyChallenge, setDailyChallenge] = useState(null);
+  const [challengeCompleted, setChallengeCompleted] = useState(false);
 
   const topics = [
   "All",
@@ -75,6 +77,24 @@ export default function SmartRevisionFlashcards() {
     : flashcards[difficulty].filter(
         (card) => card.topic === selectedTopic
       );
+
+      const generateDailyChallenge = () => {
+  const allCards = [
+    ...flashcards.Easy,
+    ...flashcards.Medium,
+    ...flashcards.Hard,
+  ];
+
+  const randomCard =
+    allCards[Math.floor(Math.random() * allCards.length)];
+
+  setDailyChallenge(randomCard);
+  setChallengeCompleted(false);
+};
+
+useEffect(() => {
+  generateDailyChallenge();
+}, []);
 
       if (currentCards.length === 0) {
   return (
@@ -160,6 +180,66 @@ setHistory((prev) => [
       {totalScore}
     </p>
   </div>
+
+  <div className="bg-slate-800 p-4 rounded-lg mb-5">
+  <div className="flex justify-between items-center mb-3">
+    <h3 className="font-bold text-lg">
+      🎯 Daily Revision Challenge
+    </h3>
+
+    <button
+      onClick={generateDailyChallenge}
+      className="px-3 py-1 bg-purple-600 rounded hover:bg-purple-700"
+    >
+      New Challenge
+    </button>
+  </div>
+
+  {dailyChallenge && (
+    <>
+      <p className="text-purple-300 mb-2">
+        Topic: {dailyChallenge.topic}
+      </p>
+
+      <p className="mb-3">
+        {dailyChallenge.question}
+      </p>
+
+      {!challengeCompleted ? (
+        <button
+          onClick={() => {
+  setChallengeCompleted(true);
+
+  setTotalScore((prev) => prev + 25);
+
+  setWeeklyScore((prev) => prev + 25);
+
+  setMonthlyScore((prev) => prev + 25);
+
+  const updatedScore = totalScore + 25;
+
+  if (updatedScore > personalBest) {
+    setPersonalBest(updatedScore);
+  }
+}}
+          className="px-4 py-2 bg-green-600 rounded hover:bg-green-700"
+        >
+          Complete Challenge
+        </button>
+      ) : (
+        <div>
+          <p className="text-green-400 font-semibold">
+            ✓ Challenge Completed
+          </p>
+
+          <p className="text-yellow-400 mt-2">
+            🏆 Daily Reward Earned
+          </p>
+        </div>
+      )}
+    </>
+  )}
+</div>
 
   <div className="bg-slate-800 p-3 rounded">
     <p className="text-xs text-gray-400">Weekly Score</p>
