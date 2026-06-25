@@ -769,6 +769,31 @@ app.get("/debug", async (req, res) => {
   }
 });
 
+app.get("/api/verify-match/:matchId/:userId", async (req, res) => {
+  try {
+    const { matchId, userId } = req.params;
+    const matchKey = `{arena}:match:${matchId}`;
+    const matchStr = await redisClient.get(matchKey);
+    if (!matchStr) {
+      return res.json({ verified: false });
+    }
+    const match = JSON.parse(matchStr);
+    const players = match.players || [];
+    const isPlayer = players.some(p => p.userId === userId);
+    if (!isPlayer) {
+      return res.json({ verified: false });
+    }
+    const opponent = players.find(p => p.userId !== userId);
+    res.json({
+      verified: true,
+      opponentId: opponent ? opponent.userId : null
+    });
+  } catch (err) {
+    console.error("[verify-match] Error:", err.message);
+    res.status(500).json({ verified: false, error: err.message });
+  }
+});
+
 app.get("/health", (req, res) => {
   res.json({ status: "Arena Socket Server is running with Redis!" });
 });
