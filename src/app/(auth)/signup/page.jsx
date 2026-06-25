@@ -1,41 +1,74 @@
 "use client";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
+import { Moon, Sun } from "lucide-react";
 import AuthForm from "@/app/components/ui/AuthForm";
-import "../../../../styles/dark-mode.css";
+
+function getStoredTheme() {
+  if (typeof window === "undefined") return "light";
+
+  const saved = window.localStorage.getItem("theme");
+  if (saved === "dark" || saved === "light") return saved;
+
+  return document.documentElement.classList.contains("dark")
+    ? "dark"
+    : "light";
+}
+
+function applyTheme(nextTheme) {
+  document.documentElement.classList.toggle(
+    "dark",
+    nextTheme === "dark"
+  );
+  window.localStorage.setItem("theme", nextTheme);
+}
 
 export default function SignupPage() {
-  useEffect(() => {
-    // Load persisted theme
-    const saved = localStorage.getItem('theme');
-    const root = document.documentElement;
-    if (saved) root.dataset.theme = saved;
-    
-    const btn = document.getElementById('theme-toggle');
-    if (!btn) return;
-    
-    const setTheme = (t) => {
-      root.dataset.theme = t;
-      localStorage.setItem('theme', t);
-      btn.textContent = t === 'dark' ? '☀️ Light mode' : '🌙 Dark mode';
-    };
-    
-    const toggleTheme = () => {
-      setTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
-    };
-    
-    btn.addEventListener('click', toggleTheme);
-    btn.textContent = root.dataset.theme === 'dark' ? '☀️ Light mode' : '🌙 Dark mode';
+  const [theme, setTheme] = useState("light");
+  const [themeMounted, setThemeMounted] = useState(false);
 
-    return () => {
-      btn.removeEventListener('click', toggleTheme);
-    };
+  useEffect(() => {
+    const currentTheme = getStoredTheme();
+    setTheme(currentTheme);
+    applyTheme(currentTheme);
+    setThemeMounted(true);
   }, []);
+
+  const toggleTheme = () => {
+    setTheme((currentTheme) => {
+      const resolvedTheme = themeMounted
+        ? currentTheme
+        : getStoredTheme();
+
+      const nextTheme =
+        resolvedTheme === "light" ? "dark" : "light";
+
+      applyTheme(nextTheme);
+      setThemeMounted(true);
+
+      return nextTheme;
+    });
+  };
 
   return (
     <>
       <AuthForm isLogin={false} />
-      <button className="toggle" id="theme-toggle">🌙 Dark mode</button>
+      <button
+        onClick={toggleTheme}
+        aria-label={
+          themeMounted
+            ? `Switch to ${theme === "light" ? "dark" : "light"} mode`
+            : "Toggle theme"
+        }
+        className="fixed top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-udemy-dark-surface transition-colors focus-ring z-[9999]"
+      >
+        {!themeMounted || theme === "light" ? (
+          <Moon className="w-5 h-5" />
+        ) : (
+          <Sun className="w-5 h-5" />
+        )}
+      </button>
     </>
   );
 }
+
 
