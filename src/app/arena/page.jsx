@@ -117,6 +117,9 @@ export default function ArenaPage() {
   const [liveMatches, setLiveMatches] = useState([]);
 
   useEffect(() => {
+    let timeoutId;
+    let isOffline = false;
+
     const fetchLiveMatches = async () => {
       try {
         const socketUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 
@@ -128,15 +131,27 @@ export default function ArenaPage() {
         if (res.ok) {
           const data = await res.json();
           setLiveMatches(data.matches || []);
+          if (isOffline) {
+            isOffline = false;
+            console.log("Live matches server is back online.");
+          }
+        } else {
+          throw new Error(`Server returned status: ${res.status}`);
         }
       } catch (err) {
-        console.error("Failed to fetch live matches:", err);
+        if (!isOffline) {
+          isOffline = true;
+          console.warn("Live matches server is offline. Real-time updates disabled. Retrying less frequently.");
+        }
+      } finally {
+        // Schedule next poll: 5 seconds if online, 60 seconds if offline
+        const delay = isOffline ? 60000 : 5000;
+        timeoutId = setTimeout(fetchLiveMatches, delay);
       }
     };
 
     fetchLiveMatches();
-    const interval = setInterval(fetchLiveMatches, 5000);
-    return () => clearInterval(interval);
+    return () => clearTimeout(timeoutId);
   }, []);
 
   // Modals state
