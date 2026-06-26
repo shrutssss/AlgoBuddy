@@ -111,7 +111,48 @@ const DS_THEME = {
       </svg>
     ),
   },
+  "Quiz Mode": {
+    bg: "#fef3c7",
+     border: "#fde68a",
+    color: "#d97706",
+     icon: (c) => (
+    <svg
+      viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+      <path d="M9 12l2 2 4-4" />
+      <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" />
+    </svg>
+    )
+  },
+  "Smart Revision": {
+    bg: "#d1fae5",
+    border: "#a7f3d0",
+    color: "#059669",
+     icon: (c) => (
+    <svg 
+      viewBox="0 0 24 24"fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+      <path d="M9 12h6" />
+      <path d="M12 9v6" />
+      <path d="M5 5h14v14H5z" />  
+    </svg>
+    )
+  },
+  "Collaborative Sessions": {
+  bg: "#ede9fe",
+  border: "#ddd6fe",
+  color: "#7c3aed",
+  icon: (c) => (
+    <svg
+      viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+      <path d="M17 20h5V4H2v16h5" />
+      <path d="M17 20v-4a3 3 0 0 0-3-3H10a3 3 0 0 0-3 3v4" />
+      <path d="M17 20H7" />
+      <path d="M17 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+      <path d="M9 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+    </svg>
+  ),
+  },
 };
+
 
 const getTheme = (t) =>
   DS_THEME[t] || {
@@ -599,6 +640,12 @@ initialSections
         .dark [data-theme-header="Recursion"] { background: #0f3129 !important; border-color: #115e59 !important; }
         .dark [data-theme-header="AI Algorithms"] { background: #0a3d47 !important; border-color: #0891b2 !important; }
         .dark [data-theme-header="Dynamic Programming"] { background: #0c4a6e !important; border-color: #0284c7 !important; }
+        .dark [data-theme-header="Quiz Mode"] {background: #3b2a0a !important;border-color: #ca8a04 !important;}
+        .dark [data-theme-card="Quiz Mode"] {background: #2b1f08 !important; border-color: #ca8a04 !important; }
+        .dark [data-theme-card="Smart Revision"] {background: #102a24 !important; border-color: #059669 !important;}
+        .dark [data-theme-header="Smart Revision"] {background: #16352e !important;border-color: #059669 !important;}
+        .dark [data-theme-card="Collaborative Sessions"] { background: #1a1835 !important; border-color: #7c3aed !important;}
+        .dark [data-theme-header="Collaborative Sessions"] {background: #24204a !important; border-color: #7c3aed !important;}
         .dark [data-theme-card="Array"] .mini-viz-inactive { background: #5b21b6 !important; }
         .dark [data-theme-card="Stack"] .mini-viz-inactive { background: #1e3a8a !important; color: #93c5fd !important; }
         .dark [data-theme-card="Queue"] .mini-viz-inactive { background: #166534 !important; color: #86efac !important; }
