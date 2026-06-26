@@ -32,13 +32,15 @@ import { kruskalGenerator } from "@/features/algorithms/graph/kruskalLogic";
 import { topologicalSortGenerator } from "@/features/algorithms/graph/topologicalSortLogic";
 import { kosarajuGenerator } from "@/features/algorithms/graph/kosarajuLogic";
 import { tarjanGenerator } from "@/features/algorithms/graph/tarjanLogic";
+import { aStarGenerator } from "@/features/algorithms/graph/aStarLogic";
+import { fordFulkersonGenerator } from "@/features/algorithms/graph/fordFulkersonLogic";
 import { 
   adjacencyListFrames,
   adjacencyMatrixFrames
 } from "../utils/algorithms";
 
-const weightedAlgorithms = new Set(["dijkstra", "bellman-ford", "floyd-warshall", "prim", "kruskal"]);
-const directedAlgorithms = new Set(["dijkstra", "bellman-ford", "floyd-warshall", "topological-sort", "kosaraju", "tarjan"]);
+const weightedAlgorithms = new Set(["dijkstra", "bellman-ford", "floyd-warshall", "prim", "kruskal", "a-star", "ford-fulkerson"]);
+const directedAlgorithms = new Set(["dijkstra", "bellman-ford", "floyd-warshall", "topological-sort", "kosaraju", "tarjan", "a-star", "ford-fulkerson"]);
 
 const defaultGraphs = {
   bfs: {
@@ -136,6 +138,46 @@ const defaultGraphs = {
       { from: "3", to: "5", weight: 2, directed: true },
       { from: "4", to: "3", weight: -4, directed: true },
       { from: "4", to: "5", weight: 6, directed: true },
+    ]
+  },
+  "a-star": {
+    nodes: [
+      { id: "0", x: 100, y: 250, label: "A" },
+      { id: "1", x: 300, y: 100, label: "B" },
+      { id: "2", x: 300, y: 400, label: "C" },
+      { id: "3", x: 500, y: 100, label: "D" },
+      { id: "4", x: 500, y: 400, label: "E" },
+      { id: "5", x: 700, y: 250, label: "F" },
+    ],
+    edges: [
+      { from: "0", to: "1", weight: 4, directed: true },
+      { from: "0", to: "2", weight: 2, directed: true },
+      { from: "1", to: "3", weight: 5, directed: true },
+      { from: "1", to: "2", weight: 1, directed: true },
+      { from: "2", to: "4", weight: 3, directed: true },
+      { from: "3", to: "5", weight: 2, directed: true },
+      { from: "4", to: "5", weight: 6, directed: true },
+    ]
+  },
+  "ford-fulkerson": {
+    nodes: [
+      { id: "0", x: 100, y: 250, label: "S" },
+      { id: "1", x: 300, y: 100, label: "A" },
+      { id: "2", x: 300, y: 400, label: "B" },
+      { id: "3", x: 500, y: 100, label: "C" },
+      { id: "4", x: 500, y: 400, label: "D" },
+      { id: "5", x: 700, y: 250, label: "T" },
+    ],
+    edges: [
+      { from: "0", to: "1", weight: 10, directed: true },
+      { from: "0", to: "2", weight: 10, directed: true },
+      { from: "1", to: "2", weight: 2, directed: true },
+      { from: "1", to: "3", weight: 4, directed: true },
+      { from: "1", to: "4", weight: 8, directed: true },
+      { from: "2", to: "4", weight: 9, directed: true },
+      { from: "4", to: "3", weight: 6, directed: true },
+      { from: "3", to: "5", weight: 10, directed: true },
+      { from: "4", to: "5", weight: 10, directed: true },
     ]
   },
   prim: {
@@ -281,6 +323,14 @@ const complexityData = {
     { name: 'Time', value: 90, label: 'O(ElogV)', full: 'Time Complexity' },
     { name: 'Space', value: 60, label: 'O(V)', full: 'Space Complexity' },
   ],
+  "a-star": [
+    { name: 'Time', value: 85, label: 'O(E)', full: 'Time Complexity' },
+    { name: 'Space', value: 60, label: 'O(V)', full: 'Space Complexity' },
+  ],
+  "ford-fulkerson": [
+    { name: 'Time', value: 95, label: 'O(V E^2)', full: 'Time Complexity' },
+    { name: 'Space', value: 75, label: 'O(V^2)', full: 'Space Complexity' },
+  ],
   kruskal: [
     { name: 'Time', value: 90, label: 'O(ElogE)', full: 'Time Complexity' },
     { name: 'Space', value: 60, label: 'O(V)', full: 'Space Complexity' },
@@ -350,6 +400,14 @@ export default function GraphVisualizer({ algorithm = "bfs", startNode: initialS
     if (algorithm === "topological-sort") return Array.from(topologicalSortGenerator(adj, nodes.map(n => n.id)));
     if (algorithm === "kosaraju") return Array.from(kosarajuGenerator(adj, nodes));
     if (algorithm === "tarjan") return Array.from(tarjanGenerator(adj, nodes));
+    if (algorithm === "a-star") {
+      const goalNodeId = nodes.length > 1 ? nodes[nodes.length - 1].id : null;
+      return Array.from(aStarGenerator(nodes, edges, startNodeId, goalNodeId));
+    }
+    if (algorithm === "ford-fulkerson") {
+      const sinkNodeId = nodes.length > 1 ? nodes[nodes.length - 1].id : null;
+      return Array.from(fordFulkersonGenerator(nodes, edges, startNodeId, sinkNodeId));
+    }
     if (algorithm === "adjacency-list") return adjacencyListFrames(nodes, edges);
     if (algorithm === "adjacency-matrix") return adjacencyMatrixFrames(nodes, edges);
     return [];
