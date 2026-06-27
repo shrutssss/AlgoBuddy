@@ -281,8 +281,8 @@ export default function PracticeNotebook() {
                     onClick={() => setEditMode("write")}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
                       editMode === "write"
-                        ? "bg-slate-100 dark:bg-neutral-850 text-slate-800 dark:text-white"
-                        : "text-slate-400 hover:text-slate-650"
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-slate-400 hover:text-slate-650 dark:text-neutral-500 dark:hover:text-neutral-300"
                     }`}
                   >
                     Write
@@ -291,8 +291,8 @@ export default function PracticeNotebook() {
                     onClick={() => setEditMode("preview")}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
                       editMode === "preview"
-                        ? "bg-slate-100 dark:bg-neutral-850 text-slate-800 dark:text-white"
-                        : "text-slate-400 hover:text-slate-650"
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-slate-400 hover:text-slate-650 dark:text-neutral-500 dark:hover:text-neutral-300"
                     }`}
                   >
                     Preview
