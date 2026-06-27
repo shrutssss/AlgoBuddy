@@ -1,5 +1,3 @@
-import crypto from "crypto";
-
 const CSRF_TOKEN_LENGTH = 32;
 const CSRF_SECRET_ENV = "CSRF_SECRET";
 
@@ -14,7 +12,8 @@ function getSecret() {
     );
   }
   if (!devSecret) {
-    devSecret = crypto.randomBytes(32).toString("hex");
+    const cryptoModule = require("crypto");
+    devSecret = cryptoModule.randomBytes(32).toString("hex");
     console.warn(
       "CSRF_SECRET not set. Generated a random development secret. " +
       "Tokens will be invalidated on server restart. Set CSRF_SECRET in .env.local for persistence.",
@@ -24,9 +23,10 @@ function getSecret() {
 }
 
 export function generateCsrfToken() {
+  const cryptoModule = require("crypto");
   const secret = getSecret();
-  const randomValue = crypto.randomBytes(CSRF_TOKEN_LENGTH).toString("hex");
-  const hmac = crypto.createHmac("sha256", secret);
+  const randomValue = cryptoModule.randomBytes(CSRF_TOKEN_LENGTH).toString("hex");
+  const hmac = cryptoModule.createHmac("sha256", secret);
   hmac.update(randomValue);
   const signature = hmac.digest("hex");
   return `${randomValue}.${signature}`;
@@ -38,12 +38,13 @@ export function validateCsrfToken(token) {
   if (parts.length !== 2) return false;
   const [randomValue, signature] = parts;
   const secret = getSecret();
-  const hmac = crypto.createHmac("sha256", secret);
+  const cryptoModule = require("crypto");
+  const hmac = cryptoModule.createHmac("sha256", secret);
   hmac.update(randomValue);
   const expected = hmac.digest("hex");
   if (signature.length !== expected.length) return false;
   try {
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+    return cryptoModule.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
   } catch {
     return false;
   }
@@ -56,14 +57,14 @@ export async function validateCsrfTokenEdge(token) {
   const [randomValue, signature] = parts;
   const secret = getSecret();
   const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
+  const key = await globalThis.crypto.subtle.importKey(
     "raw",
     encoder.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
   );
-  const sigBytes = await crypto.subtle.sign("HMAC", key, encoder.encode(randomValue));
+  const sigBytes = await globalThis.crypto.subtle.sign("HMAC", key, encoder.encode(randomValue));
   const expected = Array.from(new Uint8Array(sigBytes))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
