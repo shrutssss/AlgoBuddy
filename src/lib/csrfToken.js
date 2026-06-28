@@ -32,24 +32,6 @@ export function generateCsrfToken() {
   return `${randomValue}.${signature}`;
 }
 
-export function validateCsrfToken(token) {
-  if (!token || typeof token !== "string") return false;
-  const parts = token.split(".");
-  if (parts.length !== 2) return false;
-  const [randomValue, signature] = parts;
-  const secret = getSecret();
-  const cryptoModule = require("crypto");
-  const hmac = cryptoModule.createHmac("sha256", secret);
-  hmac.update(randomValue);
-  const expected = hmac.digest("hex");
-  if (signature.length !== expected.length) return false;
-  try {
-    return cryptoModule.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
-  } catch {
-    return false;
-  }
-}
-
 export async function validateCsrfTokenEdge(token) {
   if (!token || typeof token !== "string") return false;
   const parts = token.split(".");
