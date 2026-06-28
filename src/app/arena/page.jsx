@@ -199,16 +199,7 @@ export default function ArenaPage() {
   const [duelSimulatorOpen, setDuelSimulatorOpen] = useState(false);
   const [selectedOpponent, setSelectedOpponent] = useState(null);
   const [activeDuelProblem, setActiveDuelProblem] = useState("Reverse Linked List");
-  const [showXPWidget, setShowXPWidget] = useState(true);
 
-   useEffect(() => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(
-      "arena-show-xp-widget",
-      JSON.stringify(showXPWidget)
-    );
-  }
-}, [showXPWidget]);
 
   const [currentUserStats, setCurrentUserStats] = useState({
     name: "",
@@ -967,12 +958,6 @@ export default function ArenaPage() {
               </div>
             </div>
 
-            <button
-  onClick={() => setShowXPWidget(!showXPWidget)}
-  className="text-xs text-primary font-semibold"
->
-  {showXPWidget ? "Hide XP Widget (deprecated)" : "Show XP Widget (deprecated)"}
-</button>
           </aside>
 
         </div>
