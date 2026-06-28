@@ -12,9 +12,8 @@ function getSecret() {
     );
   }
   if (!devSecret) {
-    // In development, Node and Edge runtimes don't share memory, so generating
-    // a random secret per-process causes them to mismatch. We use a static fallback.
-    devSecret = "algobuddy-development-secret-key-fallback";
+    const cryptoModule = require("crypto");
+    devSecret = cryptoModule.randomBytes(32).toString("hex");
     console.warn(
       "CSRF_SECRET not set. Using a fallback development secret. " +
       "Set CSRF_SECRET in .env.local for persistence and security in production.",
@@ -23,28 +22,32 @@ function getSecret() {
   return devSecret;
 }
 
-export async function generateCsrfToken() {
+export function generateCsrfToken() {
+  const cryptoModule = require("crypto");
   const secret = getSecret();
-  const array = new Uint8Array(CSRF_TOKEN_LENGTH);
-  crypto.getRandomValues(array);
-  const randomValue = Array.from(array)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-  
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sigBytes = await crypto.subtle.sign("HMAC", key, encoder.encode(randomValue));
-  const signature = Array.from(new Uint8Array(sigBytes))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-    
+  const randomValue = cryptoModule.randomBytes(CSRF_TOKEN_LENGTH).toString("hex");
+  const hmac = cryptoModule.createHmac("sha256", secret);
+  hmac.update(randomValue);
+  const signature = hmac.digest("hex");
   return `${randomValue}.${signature}`;
+}
+
+export function validateCsrfToken(token) {
+  if (!token || typeof token !== "string") return false;
+  const parts = token.split(".");
+  if (parts.length !== 2) return false;
+  const [randomValue, signature] = parts;
+  const secret = getSecret();
+  const cryptoModule = require("crypto");
+  const hmac = cryptoModule.createHmac("sha256", secret);
+  hmac.update(randomValue);
+  const expected = hmac.digest("hex");
+  if (signature.length !== expected.length) return false;
+  try {
+    return cryptoModule.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  } catch {
+    return false;
+  }
 }
 
 export async function validateCsrfTokenEdge(token) {
@@ -54,14 +57,14 @@ export async function validateCsrfTokenEdge(token) {
   const [randomValue, signature] = parts;
   const secret = getSecret();
   const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
+  const key = await globalThis.crypto.subtle.importKey(
     "raw",
     encoder.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
   );
-  const sigBytes = await crypto.subtle.sign("HMAC", key, encoder.encode(randomValue));
+  const sigBytes = await globalThis.crypto.subtle.sign("HMAC", key, encoder.encode(randomValue));
   const expected = Array.from(new Uint8Array(sigBytes))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");

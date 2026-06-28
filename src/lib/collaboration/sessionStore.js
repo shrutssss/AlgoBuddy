@@ -237,7 +237,7 @@ async function backfillMemorySessionsToRedis() {
         if (!ttl || ttl <= Date.now()) continue;
         const existing = await redis.get(sessionKey(id));
         if (!existing) {
-          await redis.set(sessionKey(id), session, { ex: SESSION_TTL_SECONDS });
+          await redis.set(sessionKey(id), JSON.stringify(session), { ex: SESSION_TTL_SECONDS });
           migrated++;
           memorySessions.delete(id);
           memorySessionTtls.delete(id);
@@ -247,7 +247,7 @@ async function backfillMemorySessionsToRedis() {
             memorySessions.delete(id);
             memorySessionTtls.delete(id);
           } else {
-            await redis.set(sessionKey(id), session, { ex: SESSION_TTL_SECONDS });
+            await redis.set(sessionKey(id), JSON.stringify(session), { ex: SESSION_TTL_SECONDS });
             migrated++;
             memorySessions.delete(id);
             memorySessionTtls.delete(id);
