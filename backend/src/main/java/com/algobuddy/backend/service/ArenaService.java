@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings("null")
 public class ArenaService {
 
     private static final Logger log = LoggerFactory.getLogger(ArenaService.class);
@@ -253,6 +252,14 @@ public class ArenaService {
 
         boolean isWinner = request.isWinner();
 
+        if (!matchIdStr.startsWith("mock-match-")) {
+            UUID verifiedWinnerId = verifyMatchResult(matchIdStr, requestingUserId);
+            if (!verifiedWinnerId.equals(requestingUserId)) {
+                throw new SecurityException("Match result conflict: verified winner does not match claim");
+            }
+            isWinner = true;
+        }
+
         final int MAX_RETRIES = 3;
 
         // Execute each retry attempt in an isolated transaction.
@@ -272,6 +279,14 @@ public class ArenaService {
                     if (!existingMatch.getPlayer1Id().equals(requestingUserId) &&
                         !existingMatch.getPlayer2Id().equals(requestingUserId)) {
                         throw new SecurityException("User is not a participant in this match");
+                    }
+
+                    if (existingMatch.getStatus() == ArenaMatch.MatchStatus.EXPIRED) {
+                        throw new IllegalStateException("This match has expired and cannot accept results");
+                    }
+
+                    if (existingMatch.getStatus() == ArenaMatch.MatchStatus.COMPLETED) {
+                        return null;
                     }
 
                     if (existingMatch.getWinnerId() != null) {
