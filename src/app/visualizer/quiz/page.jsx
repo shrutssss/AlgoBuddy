@@ -104,6 +104,13 @@ export default function QuizPage() {
       href: "/visualizer/recursion/subsequences/quiz",
       color: "bg-rose-600 hover:bg-rose-700",
     },
+    {
+      title: "Backtracking Quiz",
+      description:
+        "Test your understanding of Backtracking with multiple-choice questions.",
+      href: "/visualizer/recursion/backtracking/quiz",
+      color: "bg-amber-600 hover:bg-amber-700",
+    },
   ];
 
   const [searchQuery, setSearchQuery] = useState("");
