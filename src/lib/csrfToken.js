@@ -25,13 +25,25 @@ function getSecret() {
   return devSecret;
 }
 
-export function generateCsrfToken() {
-  const cryptoModule = require("crypto");
+export async function generateCsrfToken() {
   const secret = getSecret();
-  const randomValue = cryptoModule.randomBytes(CSRF_TOKEN_LENGTH).toString("hex");
-  const hmac = cryptoModule.createHmac("sha256", secret);
-  hmac.update(randomValue);
-  const signature = hmac.digest("hex");
+  const array = new Uint8Array(CSRF_TOKEN_LENGTH);
+  globalThis.crypto.getRandomValues(array);
+  const randomValue = Array.from(array)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const encoder = new TextEncoder();
+  const key = await globalThis.crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sigBytes = await globalThis.crypto.subtle.sign("HMAC", key, encoder.encode(randomValue));
+  const signature = Array.from(new Uint8Array(sigBytes))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
   return `${randomValue}.${signature}`;
 }
 
