@@ -56,7 +56,7 @@ export function useProblemBookmarks() {
         const stored = await persistence.get("PROBLEM_BOOKMARKS");
         if (stored) {
           localBookmarks = stored;
-          setBookmarks(localBookmarks);
+          setBookmarks(prev => prev.length === 0 ? stored : prev);
         }
       } catch (e) {
         console.error("Failed to parse local bookmarks:", e);
@@ -88,8 +88,16 @@ export function useProblemBookmarks() {
 
           // Final state = DB items + any local-only items just synced up.
           // Items deleted in another browser (in local but not DB) are dropped.
+          // Use a functional updater to preserve any concurrent local mutations.
           const authoritative = [...dbBookmarks, ...localOnly];
-          setBookmarks(authoritative);
+          const authoritativeIds = new Set(authoritative.map(b => b.id));
+          setBookmarks(prev => {
+            const merged = [...authoritative];
+            for (const b of prev) {
+              if (!authoritativeIds.has(b.id)) merged.push(b);
+            }
+            return merged;
+          });
           persistence.set("PROBLEM_BOOKMARKS", authoritative);
         } catch (e) {
           console.error("Bookmark fetch failed:", e);

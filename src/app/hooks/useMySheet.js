@@ -131,7 +131,7 @@ export function useMySheet() {
     const init = async () => {
       setLoading(true);
       const local = readLocal();
-      if (!cancelled) setSheet(local);
+      if (!cancelled) setSheet(prev => Object.keys(prev).length === 0 ? local : prev);
 
       if (!user) {
         setLoading(false);
@@ -156,13 +156,20 @@ export function useMySheet() {
           // 2. After syncing local-only items up, build the authoritative state:
           //    server data + local-only items that were just synced.
           //    Items deleted in another browser (exist in local but not server) are dropped.
+          //    Use a functional updater to preserve any concurrent local mutations.
           const authoritative = { ...serverSheet };
           toSync.forEach(({ problemId }) => {
             if (local[problemId]) authoritative[problemId] = local[problemId];
           });
 
           writeLocal(authoritative);
-          if (!cancelled) setSheet(authoritative);
+          if (!cancelled) setSheet(prev => {
+            const merged = { ...authoritative };
+            for (const id of Object.keys(prev)) {
+              if (!merged[id]) merged[id] = prev[id];
+            }
+            return merged;
+          });
         }
       } catch (err) {
         console.error("[useMySheet] sync failed:", err);
