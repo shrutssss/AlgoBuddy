@@ -1,19 +1,99 @@
 -- Add joined_community column to user_profiles for Join Community Button
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS joined_community BOOLEAN DEFAULT false;
 
--- Create community_contributors table for the Contributors Grid section
-CREATE TABLE IF NOT EXISTS community_contributors (
-  id BIGSERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  avatar_url TEXT,
-  role TEXT DEFAULT 'Contributor',
-  github_url TEXT,
-  "order" INTEGER DEFAULT 0
-);
+-- ── user_activity ──────────────────────────────────────────────────────
+ALTER TABLE user_activity ENABLE ROW LEVEL SECURITY;
 
+CREATE POLICY "Users can read own activity" ON user_activity
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own activity" ON user_activity
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own activity" ON user_activity
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- ── problem_bookmarks ──────────────────────────────────────────────────
+ALTER TABLE problem_bookmarks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own bookmarks" ON problem_bookmarks
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own bookmarks" ON problem_bookmarks
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own bookmarks" ON problem_bookmarks
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own bookmarks" ON problem_bookmarks
+  FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ── user_progress ──────────────────────────────────────────────────────
+ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own progress" ON user_progress
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own progress" ON user_progress
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own progress" ON user_progress
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- ── user_profiles ──────────────────────────────────────────────────────
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own profile" ON user_profiles
+  FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert own profile" ON user_profiles
+  FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" ON user_profiles
+  FOR UPDATE
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+-- ── community_contributors (already has SELECT for public) ──────────────
 ALTER TABLE community_contributors ENABLE ROW LEVEL SECURITY;
 
--- Allow public read access (unauthenticated users can view contributors)
 CREATE POLICY "Allow public read access" ON community_contributors
   FOR SELECT
   USING (true);
+
+-- Admin users can manage contributors (requires a custom claim or user_metadata)
+CREATE POLICY "Admins can insert contributors" ON community_contributors
+  FOR INSERT
+  WITH CHECK (
+    auth.role() = 'authenticated' AND
+    auth.jwt() -> 'app_metadata' ->> 'role' = 'admin'
+  );
+
+CREATE POLICY "Admins can update contributors" ON community_contributors
+  FOR UPDATE
+  USING (
+    auth.role() = 'authenticated' AND
+    auth.jwt() -> 'app_metadata' ->> 'role' = 'admin'
+  );
+
+CREATE POLICY "Admins can delete contributors" ON community_contributors
+  FOR DELETE
+  USING (
+    auth.role() = 'authenticated' AND
+    auth.jwt() -> 'app_metadata' ->> 'role' = 'admin'
+  );
