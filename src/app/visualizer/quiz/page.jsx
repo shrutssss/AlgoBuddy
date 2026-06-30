@@ -43,6 +43,12 @@ export default function QuizPage() {
         "Practice Stack implementation using Array and Linked List.",
       href: "/visualizer/stack/implementation/quiz",
       color: "bg-emerald-600 hover:bg-emerald-700",
+    },
+    {
+      title: "Monotonic Stack Quiz",
+      description: "Practice Largest Rectangle in Histogram.",
+      href: "/visualizer/stack/monotonic/quiz",
+      color: "bg-cyan-600 hover:bg-cyan-700",
     }
   ];
 
