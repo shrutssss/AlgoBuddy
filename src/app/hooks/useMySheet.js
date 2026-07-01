@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@/features/user/UserContext";
 import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/apiClient";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const LOCAL_KEY = "algobuddy_my_sheet";
@@ -59,13 +60,13 @@ async function fetchMySheetFromServer() {
   }
 
   // Supabase path via Next.js API route
-  const res = await fetch("/api/mysheet");
-  if (!res.ok) {
-    console.error("[useMySheet] fetch from NextJS failed with status:", res.status);
+  try {
+    const data = await api.request("/api/mysheet");
+    return data.sheet || null;
+  } catch {
+    console.error("[useMySheet] fetch from NextJS failed");
     return null;
   }
-  const data = await res.json();
-  return data.sheet || null;
 }
 
 async function addToSheetOnServer(problemId, note = "") {
@@ -80,11 +81,12 @@ async function addToSheetOnServer(problemId, note = "") {
     return;
   }
 
-  await fetch("/api/mysheet", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ problemId, note }),
-  });
+  try {
+    await api.request("/api/mysheet", {
+      method: "POST",
+      body: { problemId, note },
+    });
+  } catch {}
 }
 
 async function removeFromSheetOnServer(problemId) {
@@ -98,9 +100,11 @@ async function removeFromSheetOnServer(problemId) {
     return;
   }
 
-  await fetch(`/api/mysheet?problemId=${encodeURIComponent(problemId)}`, {
-    method: "DELETE",
-  });
+  try {
+    await api.request(`/api/mysheet?problemId=${encodeURIComponent(problemId)}`, {
+      method: "DELETE",
+    });
+  } catch {}
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────────────

@@ -5,40 +5,30 @@ import { toast } from "react-hot-toast";
 import { persistence } from "@/lib/persistence";
 
 import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/apiClient";
 
 async function apiFetch(url, options = {}) {
-  let finalUrl = url;
-  const headers = { "Content-Type": "application/json", ...options.headers };
-
   if (process.env.NEXT_PUBLIC_USE_SPRING_BOOT_API === "true") {
     const baseUrl = process.env.NEXT_PUBLIC_SPRING_BOOT_API_URL || "http://localhost:8080";
-    finalUrl = baseUrl + url.replace("/api/bookmarks", "/api/v1/bookmarks");
+    const finalUrl = baseUrl + url.replace("/api/bookmarks", "/api/v1/bookmarks");
     const { data: { session } } = await supabase.auth.getSession();
+    const headers = { "Content-Type": "application/json", ...options.headers };
     if (session?.access_token) {
       headers["Authorization"] = `Bearer ${session.access_token}`;
     }
+    const body = options.body && typeof options.body === "object" ? JSON.stringify(options.body) : options.body;
+    const response = await fetch(finalUrl, { ...options, body, headers });
+    if (response.status === 200 && response.headers.get("content-length") === "0") {
+      return {};
+    }
+    const text = await response.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch (e) {}
+    if (!response.ok) throw new Error(data.error || "Request failed");
+    return data;
   }
 
-  const response = await fetch(finalUrl, {
-    ...options,
-    headers,
-  });
-  
-  // Spring Boot POST/DELETE returns empty body
-  if (response.status === 200 && response.headers.get("content-length") === "0") {
-    return {};
-  }
-  
-  const text = await response.text();
-  let data = {};
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch (e) {
-    console.error("[apiFetch] Failed to parse API response as JSON:", e);
-  }
-
-  if (!response.ok) throw new Error(data.error || "Request failed");
-  return data;
+  return api.request(url, options);
 }
 
 export function useProblemBookmarks() {
@@ -79,7 +69,7 @@ export function useProblemBookmarks() {
             try {
               await apiFetch("/api/bookmarks", {
                 method: "POST",
-                body: JSON.stringify({ problemId: b.id, topicSlug: b.topicSlug }),
+                body: { problemId: b.id, topicSlug: b.topicSlug },
               });
             } catch (error) {
               console.error("[useProblemBookmarks] Failed to sync local bookmark to server:", error);
@@ -139,7 +129,7 @@ export function useProblemBookmarks() {
         try {
           await apiFetch("/api/bookmarks", {
             method: "POST",
-            body: JSON.stringify({ problemId, topicSlug }),
+            body: { problemId, topicSlug },
           });
           toast.success("Problem bookmarked successfully!");
         } catch (e) {
