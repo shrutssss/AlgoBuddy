@@ -9,7 +9,10 @@ export default function GlobalKeyboardShortcuts() {
 
   useEffect(() => {
     const onKeyDown = (event) => {
-      const key = event.key?.toLowerCase();
+      if (typeof event.key !== "string") 
+        return;
+
+      const key = event.key.toLowerCase();
       const isCtrl = event.ctrlKey || event.metaKey;
       const isShift = event.shiftKey;
       const isOnVisualizer = window.location.pathname.includes('/visualizer');

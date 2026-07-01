@@ -28,7 +28,10 @@ export default function GlobalShortcutsModal() {
     }
 
     function handleKeyDown(event) {
-      const key = event.key?.toLowerCase();
+      if (typeof event.key !== "string") 
+        return;
+
+      const key = event.key.toLowerCase();
       
       const target = event.target;
       const isTyping = target.tagName?.toLowerCase() === "input" || 
