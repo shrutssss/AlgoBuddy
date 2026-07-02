@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Layers, GitBranch, Terminal, HelpCircle, ArrowRight, Search, Network, Brain } from "lucide-react";
+import { Layers, GitBranch, Terminal, HelpCircle, ArrowRight, Search, Network, Brain, TreePine } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function QuizPage() {
@@ -232,7 +232,7 @@ export default function QuizPage() {
         "Practice AVL, Red-Black Tree, B-Tree, B+ Tree, Segment Tree, Fenwick Tree, Trie, and Heap Tree concepts.",
       href: "/visualizer/tree/advanced/quiz",
       filename: "advanced_tree_quiz.js",
-      icon: Trees,
+      icon: TreePine,
       cardBorder: "border-emerald-500/20 dark:border-emerald-500/30",
       topBarBg: "bg-emerald-500/10 dark:bg-emerald-500/20",
       iconStyle:
