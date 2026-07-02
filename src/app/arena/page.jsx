@@ -994,6 +994,38 @@ export default function ArenaPage() {
                       </div>
                     </div>
 
+                    <div className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <h5 className="text-sm font-bold text-slate-800 dark:text-neutral-200">Streak Rewards</h5>
+                        <button className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wide transition-all hover:opacity-80">View All</button>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                          { days: 7, name: "Novice Coder", icon: <Flame size={24} />, unlocked: (streakData?.best || 0) >= 7 },
+                          { days: 30, name: "Habit Builder", icon: <Target size={24} />, unlocked: (streakData?.best || 0) >= 30 },
+                          { days: 100, name: "Centurion", icon: <Award size={24} />, unlocked: (streakData?.best || 0) >= 100 },
+                          { days: 365, name: "Unstoppable", icon: <Zap size={24} />, unlocked: (streakData?.best || 0) >= 365 },
+                        ].map((badge, idx) => (
+                          <div 
+                            key={idx}
+                            className={`flex flex-col items-center p-4 rounded-xl border text-center transition-all duration-300 ${
+                              badge.unlocked 
+                                ? "bg-white dark:bg-neutral-800 border-primary/30 shadow-[0_0_15px_rgba(var(--primary),0.1)] hover:-translate-y-1 hover:shadow-[0_4px_20px_rgba(var(--primary),0.2)]" 
+                                : "bg-slate-100 dark:bg-neutral-800/50 border-slate-200 dark:border-neutral-800 opacity-60 grayscale"
+                            }`}
+                          >
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
+                              badge.unlocked ? "bg-primary/10 text-primary" : "bg-slate-200 dark:bg-neutral-700 text-slate-400"
+                            }`}>
+                              {badge.icon}
+                            </div>
+                            <span className="text-xs font-bold text-slate-800 dark:text-neutral-200">{badge.name}</span>
+                            <span className="text-[10px] text-slate-500 mt-1">{badge.days} Days</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-5">
                       <h5 className="text-sm font-bold text-slate-800 dark:text-neutral-200 mb-4">Activity Heatmap (Last 30 Days)</h5>
                       <div className="grid grid-cols-7 gap-2">
