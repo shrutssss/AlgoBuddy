@@ -999,12 +999,24 @@ export default function ArenaPage() {
                       <h5 className="text-sm font-bold text-slate-800 dark:text-neutral-200 mb-4">Activity Heatmap (Last 30 Days)</h5>
                       <div className="grid grid-cols-7 gap-2">
                         {Array.from({ length: 30 }).map((_, i) => {
-                          const isActive = Math.random() > 0.4;
+                          const daysAgo = 29 - i;
+                          const current = streakData?.current || 0;
+                          
+                          let isActive = daysAgo < current;
+                          // Simulate historical activity deterministically if outside current streak
+                          if (!isActive) {
+                            isActive = (daysAgo * 7) % 11 < 4 && daysAgo < 25; 
+                          }
+                          
+                          const d = new Date();
+                          d.setDate(d.getDate() - daysAgo);
+                          const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                          
                           return (
                             <div 
                               key={i} 
-                              className={`aspect-square rounded-lg transition ${isActive ? "bg-amber-400 dark:bg-amber-500" : "bg-slate-200 dark:bg-neutral-800"} hover:scale-110`}
-                              title={isActive ? "Active" : "Inactive"}
+                              className={`aspect-square rounded-lg transition-all duration-300 ${isActive ? "bg-amber-400 dark:bg-amber-500 shadow-[0_0_8px_rgba(251,191,36,0.3)]" : "bg-slate-200 dark:bg-neutral-800"} hover:scale-110 cursor-pointer`}
+                              title={`${dateStr}: ${isActive ? "Active 🔥" : "Inactive"}`}
                             />
                           );
                         })}
