@@ -33,7 +33,8 @@ import {
   Calendar,
   TrendingDown,
   Minus,
-  Navigation
+  Navigation,
+  Share2
 } from "lucide-react";
 import { useArenaProfile } from "@/app/hooks/useArenaProfile";
 import { useSheetProgress } from "@/app/hooks/useSheetProgress";
@@ -970,63 +971,31 @@ export default function ArenaPage() {
                   </div>
                 )}
                 {activeTab === "streak" && (
-                  <div className="w-full text-left space-y-6">
-                    <div>
+                  <div className="w-full text-left space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
                       <h4 className="text-xl font-extrabold text-slate-800 dark:text-neutral-200 mb-1">Daily Streak</h4>
                       <p className="text-xs text-slate-500 dark:text-neutral-400">Keep your learning momentum going by solving problems every day.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-5 text-center">
+                      <div className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-5 text-center animate-in zoom-in-95 duration-500 delay-200 fill-mode-both">
                         <Flame size={32} className="mx-auto mb-2 text-amber-500 animate-pulse" />
                         <div className="text-2xl font-black text-slate-800 dark:text-neutral-200">{streakData?.current || 0}</div>
                         <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Current Streak</div>
                       </div>
-                      <div className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-5 text-center">
+                      <div className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-5 text-center animate-in zoom-in-95 duration-500 delay-300 fill-mode-both">
                         <Trophy size={32} className="mx-auto mb-2 text-primary" />
                         <div className="text-2xl font-black text-slate-800 dark:text-neutral-200">{streakData?.longest || 0}</div>
                         <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Longest Streak</div>
                       </div>
-                      <div className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-5 text-center">
+                      <div className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-5 text-center animate-in zoom-in-95 duration-500 delay-400 fill-mode-both">
                         <Calendar size={32} className="mx-auto mb-2 text-indigo-500" />
                         <div className="text-2xl font-black text-slate-800 dark:text-neutral-200">14</div>
                         <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Total Days Active</div>
                       </div>
                     </div>
 
-                    <div className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <h5 className="text-sm font-bold text-slate-800 dark:text-neutral-200">Streak Rewards</h5>
-                        <button className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wide transition-all hover:opacity-80">View All</button>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {[
-                          { days: 7, name: "Novice Coder", icon: <Flame size={24} />, unlocked: (streakData?.best || 0) >= 7 },
-                          { days: 30, name: "Habit Builder", icon: <Target size={24} />, unlocked: (streakData?.best || 0) >= 30 },
-                          { days: 100, name: "Centurion", icon: <Award size={24} />, unlocked: (streakData?.best || 0) >= 100 },
-                          { days: 365, name: "Unstoppable", icon: <Zap size={24} />, unlocked: (streakData?.best || 0) >= 365 },
-                        ].map((badge, idx) => (
-                          <div 
-                            key={idx}
-                            className={`flex flex-col items-center p-4 rounded-xl border text-center transition-all duration-300 ${
-                              badge.unlocked 
-                                ? "bg-white dark:bg-neutral-800 border-primary/30 shadow-[0_0_15px_rgba(var(--primary),0.1)] hover:-translate-y-1 hover:shadow-[0_4px_20px_rgba(var(--primary),0.2)]" 
-                                : "bg-slate-100 dark:bg-neutral-800/50 border-slate-200 dark:border-neutral-800 opacity-60 grayscale"
-                            }`}
-                          >
-                            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
-                              badge.unlocked ? "bg-primary/10 text-primary" : "bg-slate-200 dark:bg-neutral-700 text-slate-400"
-                            }`}>
-                              {badge.icon}
-                            </div>
-                            <span className="text-xs font-bold text-slate-800 dark:text-neutral-200">{badge.name}</span>
-                            <span className="text-[10px] text-slate-500 mt-1">{badge.days} Days</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-5">
+                    <div className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-5 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-500 fill-mode-both">
                       <h5 className="text-sm font-bold text-slate-800 dark:text-neutral-200 mb-4">Activity Heatmap (Last 30 Days)</h5>
                       <div className="grid grid-cols-7 gap-2">
                         {Array.from({ length: 30 }).map((_, i) => {
@@ -1039,6 +1008,29 @@ export default function ArenaPage() {
                             />
                           );
                         })}
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-primary to-primary/80 border border-primary/20 rounded-2xl p-6 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-primary/20">
+                      <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
+                        <Flame size={200} />
+                      </div>
+                      <div className="relative z-10 text-center md:text-left flex-1">
+                        <h5 className="text-xl font-black mb-1">Brag About Your Streak!</h5>
+                        <p className="text-sm text-white/80 max-w-md">
+                          You're on a {streakData?.current || 0} day coding streak! Show off your dedication to your friends and rivals.
+                        </p>
+                      </div>
+                      <div className="relative z-10 shrink-0">
+                        <button 
+                          onClick={() => {
+                            toast.success("Link copied to clipboard!");
+                          }}
+                          className="px-6 py-3 bg-white text-primary rounded-xl text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center gap-2 group"
+                        >
+                          <Share2 size={18} className="group-hover:scale-110 transition-transform" />
+                          Share My Streak
+                        </button>
                       </div>
                     </div>
                   </div>
